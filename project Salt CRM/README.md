@@ -5,6 +5,30 @@ Remplace la gestion par fichiers Excel et le CRM interne Pamela.
 
 Inspirations design : Linear / Attio / Folk.
 
+## 🎯 État actuel — V1 « Moteur de Prospection »
+
+Cette première version est **centrée sur la prospection** : trouver les meilleures
+entreprises à contacter pour des lignes mobiles Salt Business, sur la zone
+**Genève + périphérie + côte lémanique jusqu'à Morges**.
+
+Ce qui est livré :
+
+- 🔐 **Auth** email/password Supabase (route protégée)
+- 🧮 **Scoring de priorité** (`src/lib/scoring.ts`) qui fait remonter en tête les
+  entreprises **jamais prospectées**, **contactées il y a longtemps**, ou **sans
+  le bon décideur identifié** — pondéré par la taille (≥50 employés) et le besoin
+  mobile du secteur.
+- 📋 **Vue Prospection** : table triée par priorité (Prio A/B/C + score), filtres
+  (zone, effectif min, statut de contact, sans décideur, statut Pamela) et recherche.
+- 📄 **Fiche entreprise** : infos clés, raisons de la priorité, décideurs à
+  contacter, **email probable déduit** (`src/lib/email.ts`, marqué « à confirmer »),
+  et **brouillon d'email de prise de RDV** prêt à copier.
+- ✅ **Statut Pamela** (validé / non validé) éditable par entreprise — colonne
+  `pamela_valide`, en remplacement de la connexion au CRM interne Salt.
+
+Roadmap immédiate : import/export Excel, Kanban, vue « Aujourd'hui », stats,
+enrichissement web des décideurs manquants.
+
 ## Stack
 
 - **Vite 8 + React 19 + TypeScript 6**
