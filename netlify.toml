@@ -1,0 +1,17 @@
+# Config Netlify à la racine du repo.
+# L'app Vite est dans le sous-dossier "project Salt CRM" → on fixe `base`
+# pour que Netlify build depuis le bon dossier sans réglage manuel.
+
+[build]
+  base = "project Salt CRM"
+  command = "npm run build"
+  publish = "dist"            # relatif à `base` → project Salt CRM/dist
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# SPA fallback : react-router gère les routes côté client
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
