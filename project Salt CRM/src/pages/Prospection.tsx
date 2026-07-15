@@ -5,6 +5,7 @@ import { estDansZone, scorerEntreprise, type ScoreDetail } from '@/lib/scoring'
 import type { EntrepriseAvecContacts } from '@/lib/database.types'
 import { CouleurBadge, TierBadge, PamelaBadge } from '@/components/badges'
 import { EntrepriseDetail } from '@/components/EntrepriseDetail'
+import { ImportBanner } from '@/components/ImportBanner'
 
 type StatutFiltre = 'tous' | 'jamais' | 'ancien'
 type PamelaFiltre = 'tous' | 'valide' | 'non_valide'
@@ -120,8 +121,11 @@ export default function Prospection() {
             />
           </div>
 
-          <div className="mt-2 text-xs text-[var(--muted-foreground)]">
-            {isLoading ? 'Chargement…' : `${filtrees.length} entreprise(s) — triées par priorité de contact`}
+          <div className="mt-2 flex items-center justify-between gap-3">
+            <span className="text-xs text-[var(--muted-foreground)]">
+              {isLoading ? 'Chargement…' : `${filtrees.length} entreprise(s) — triées par priorité de contact`}
+            </span>
+            {!isLoading && scorees.length > 0 && <ImportBanner vide={false} />}
           </div>
         </div>
 
@@ -134,12 +138,19 @@ export default function Prospection() {
             </div>
           )}
 
-          {!isLoading && !error && filtrees.length === 0 && (
+          {!isLoading && !error && scorees.length === 0 && (
+            <div className="p-10">
+              <ImportBanner vide />
+            </div>
+          )}
+
+          {!isLoading && !error && scorees.length > 0 && filtrees.length === 0 && (
             <div className="p-10 text-center text-sm text-[var(--muted-foreground)]">
               Aucune entreprise ne correspond à ces filtres.
             </div>
           )}
 
+          {filtrees.length > 0 && (
           <table className="w-full border-collapse text-sm">
             <thead className="sticky top-0 z-10 bg-[var(--muted)] text-left text-xs text-[var(--muted-foreground)]">
               <tr>
@@ -201,6 +212,7 @@ export default function Prospection() {
               })}
             </tbody>
           </table>
+          )}
         </div>
       </div>
 
