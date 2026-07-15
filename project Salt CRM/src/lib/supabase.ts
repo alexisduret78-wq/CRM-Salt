@@ -11,11 +11,17 @@ if (!url || !anonKey) {
   )
 }
 
-export const supabase = createClient(url ?? '', anonKey ?? '', {
+export const supabaseConfigured = Boolean(url && anonKey)
+
+// IMPORTANT : createClient() lève une exception si l'URL est vide ou invalide.
+// Sans variables d'env, on utilise des valeurs placeholder pour NE PAS crasher
+// l'app (écran blanc). L'UI affiche alors un message « Supabase non configuré ».
+const safeUrl = supabaseConfigured ? (url as string) : 'https://placeholder.supabase.co'
+const safeKey = supabaseConfigured ? (anonKey as string) : 'placeholder-anon-key'
+
+export const supabase = createClient(safeUrl, safeKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
   },
 })
-
-export const supabaseConfigured = Boolean(url && anonKey)
