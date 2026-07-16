@@ -22,6 +22,7 @@ export interface Entreprise {
   couleur: Couleur
   statut_pamela_origine: string | null
   pamela_valide: boolean | null
+  origine: string | null // 'fichiers' (import Alexis) | 'claude' (découverte)
   assignation: string | null
   score_salt: number | null
   priorite: string | null

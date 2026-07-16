@@ -12,7 +12,7 @@ const ENT_COLS = [
   'id', 'nom', 'business_uid', 'secteur', 'ville', 'code_postal', 'adresse', 'canton',
   'taille_employes', 'site_web', 'linkedin_url', 'typologie', 'couleur',
   'statut_pamela_origine', 'assignation', 'score_salt', 'priorite', 'pourquoi_cible',
-  'echeance_contrat', 'notes_consolidees', 'source_fichier',
+  'echeance_contrat', 'notes_consolidees', 'source_fichier', 'origine',
 ] as const
 
 const CON_COLS = [

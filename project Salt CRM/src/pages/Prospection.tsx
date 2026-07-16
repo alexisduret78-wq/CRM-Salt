@@ -9,6 +9,7 @@ import { ImportBanner } from '@/components/ImportBanner'
 
 type StatutFiltre = 'tous' | 'jamais' | 'ancien'
 type PamelaFiltre = 'tous' | 'valide' | 'non_valide'
+type SourceFiltre = 'toutes' | 'fichiers' | 'claude'
 
 export interface EntrepriseScoree {
   entreprise: EntrepriseAvecContacts
@@ -24,6 +25,7 @@ export default function Prospection() {
   const [statut, setStatut] = useState<StatutFiltre>('tous')
   const [sansDecideur, setSansDecideur] = useState(false)
   const [pamela, setPamela] = useState<PamelaFiltre>('tous')
+  const [source, setSource] = useState<SourceFiltre>('toutes')
   const [masquerClients, setMasquerClients] = useState(true)
   const [selection, setSelection] = useState<string | null>(null)
 
@@ -37,6 +39,8 @@ export default function Prospection() {
   const filtrees = useMemo(() => {
     const q = recherche.trim().toLowerCase()
     return scorees.filter(({ entreprise: e, score }) => {
+      if (source === 'claude' && e.origine !== 'claude') return false
+      if (source === 'fichiers' && e.origine === 'claude') return false
       if (masquerClients && e.couleur === 'vert') return false
       if (zoneUniquement && !estDansZone(e)) return false
       if (e.taille_employes != null && e.taille_employes < tailleMin) return false
@@ -55,7 +59,7 @@ export default function Prospection() {
       }
       return true
     })
-  }, [scorees, recherche, zoneUniquement, tailleMin, statut, sansDecideur, pamela, masquerClients])
+  }, [scorees, recherche, zoneUniquement, tailleMin, statut, sansDecideur, pamela, source, masquerClients])
 
   const selectionnee = filtrees.find((f) => f.entreprise.id === selection) ?? null
 
@@ -75,6 +79,16 @@ export default function Prospection() {
                 className="w-64 rounded-md border bg-white py-1.5 pl-8 pr-3 text-sm outline-none focus:border-[var(--color-salt)]"
               />
             </div>
+
+            <Segmented
+              value={source}
+              onChange={(v) => setSource(v as SourceFiltre)}
+              options={[
+                { value: 'toutes', label: 'Toutes' },
+                { value: 'fichiers', label: '📁 Mes fichiers' },
+                { value: 'claude', label: '✨ Découvertes' },
+              ]}
+            />
 
             <Segmented
               value={statut}
@@ -183,6 +197,11 @@ export default function Prospection() {
                         <CouleurBadge couleur={e.couleur} />
                         {e.ville && (
                           <span className="text-xs text-[var(--muted-foreground)]">· {e.ville}</span>
+                        )}
+                        {e.origine === 'claude' && (
+                          <span className="rounded bg-violet-100 px-1.5 py-0.5 text-[10px] font-medium text-violet-700">
+                            ✨ Découverte
+                          </span>
                         )}
                         {e.pamela_valide && <PamelaBadge valide />}
                       </div>
