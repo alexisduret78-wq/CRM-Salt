@@ -92,7 +92,7 @@ function NavItem({
         'mb-0.5 flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium transition ' +
         (active
           ? 'bg-[var(--sidebar-soft)] text-white'
-          : 'text-[var(--sidebar-muted)] hover:bg-[var(--sidebar-soft)]/60 hover:text-white')
+          : 'text-[var(--sidebar-muted)] hover:bg-[var(--sidebar-soft)] hover:text-white')
       }
     >
       {icon}

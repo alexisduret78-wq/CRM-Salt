@@ -22,7 +22,7 @@ export default function Login() {
     <div className="flex h-full items-center justify-center bg-[var(--background)] px-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--color-salt)] text-lg font-bold text-white">
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--color-salt)] text-lg font-bold text-[var(--color-salt-ink)] shadow-[var(--shadow-glow)]">
             S
           </div>
           <h1 className="text-xl font-semibold tracking-tight">Salt CRM</h1>
@@ -48,7 +48,7 @@ export default function Login() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-md border bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-salt)] focus:ring-1 focus:ring-[var(--color-salt)]"
+              className="w-full rounded-md border bg-[var(--background)] px-3 py-2 text-sm text-[var(--foreground)] outline-none placeholder:text-[var(--muted-foreground)] focus:border-[var(--color-salt)] focus:ring-1 focus:ring-[var(--color-salt)]"
               placeholder="alexis@…"
             />
           </div>
@@ -61,18 +61,14 @@ export default function Login() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-md border bg-white px-3 py-2 text-sm outline-none focus:border-[var(--color-salt)] focus:ring-1 focus:ring-[var(--color-salt)]"
+              className="w-full rounded-md border bg-[var(--background)] px-3 py-2 text-sm text-[var(--foreground)] outline-none placeholder:text-[var(--muted-foreground)] focus:border-[var(--color-salt)] focus:ring-1 focus:ring-[var(--color-salt)]"
               placeholder="••••••••"
             />
           </div>
 
-          {error && <p className="text-xs text-red-600">{error}</p>}
+          {error && <p className="text-xs text-red-400">{error}</p>}
 
-          <button
-            type="submit"
-            disabled={busy}
-            className="w-full rounded-md bg-[var(--color-salt)] px-3 py-2 text-sm font-medium text-white transition hover:bg-[var(--color-salt-dark)] disabled:opacity-50"
-          >
+          <button type="submit" disabled={busy} className="btn-salt w-full px-3 py-2 text-sm disabled:opacity-50">
             {busy ? 'Connexion…' : 'Se connecter'}
           </button>
         </form>

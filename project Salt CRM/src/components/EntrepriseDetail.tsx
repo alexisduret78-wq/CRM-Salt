@@ -18,6 +18,7 @@ import {
 import { toast } from 'sonner'
 import type { EntrepriseAvecContacts } from '@/lib/database.types'
 import { joursDepuisDernierContact, segmentDe, type ScoreDetail } from '@/lib/scoring'
+import { STAGES, stageDe, STAGE_COLUMN } from '@/lib/pipeline'
 import { infererEmail } from '@/lib/email'
 import { useTogglePamela, useUpdateEntreprise } from '@/hooks/useEntreprises'
 import { CouleurBadge, TierBadge } from '@/components/badges'
@@ -133,8 +134,33 @@ export function EntrepriseDetail({
         </section>
 
         {/* Suivi commercial */}
-        <section className="rounded-lg border bg-[var(--muted)]/40 p-3">
+        <section className="rounded-lg border bg-[var(--card-2)] p-3">
           <SectionTitle>Suivi commercial</SectionTitle>
+
+          {/* Étape pipeline */}
+          <div className="mb-3">
+            <div className="mb-1.5 text-xs text-[var(--muted-foreground)]">Étape du pipeline</div>
+            <div className="grid grid-cols-2 gap-1.5">
+              {STAGES.map((s) => {
+                const actif = stageDe(e) === s.key
+                return (
+                  <button
+                    key={s.key}
+                    disabled={update.isPending}
+                    onClick={() => update.mutate({ id: e.id, patch: { [STAGE_COLUMN]: s.key } })}
+                    className={
+                      'rounded-md border px-2 py-1.5 text-xs font-medium transition ' +
+                      (actif
+                        ? 'border-[color:rgba(30,215,96,0.5)] bg-[var(--salt-soft)] text-[var(--color-salt)]'
+                        : 'border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]')
+                    }
+                  >
+                    {s.label}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
 
           {/* Statut de contact */}
           <div className="mb-3">
@@ -151,7 +177,7 @@ export function EntrepriseDetail({
                     patch: { date_dernier_contact: new Date().toISOString() },
                   })
                 }
-                className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-md bg-[var(--foreground)] px-3 py-2 text-xs font-medium text-white transition hover:opacity-90"
+                className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-md bg-[var(--foreground)] px-3 py-2 text-xs font-medium text-[var(--background)] transition hover:opacity-90"
               >
                 <CalendarCheck className="h-3.5 w-3.5" />
                 Marquer contactée aujourd'hui
@@ -182,8 +208,8 @@ export function EntrepriseDetail({
                 className={
                   'flex-1 rounded-md border px-3 py-2 text-sm font-medium transition ' +
                   (e.pamela_valide
-                    ? 'border-green-300 bg-green-50 text-green-700'
-                    : 'bg-[var(--card)] text-[var(--muted-foreground)] hover:bg-[var(--muted)]')
+                    ? 'border-[color:rgba(30,215,96,0.5)] bg-[var(--salt-soft)] text-[var(--color-salt)]'
+                    : 'border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] hover:bg-[var(--muted)]')
                 }
               >
                 ✓ Validé
@@ -194,8 +220,8 @@ export function EntrepriseDetail({
                 className={
                   'flex-1 rounded-md border px-3 py-2 text-sm font-medium transition ' +
                   (!e.pamela_valide
-                    ? 'border-neutral-300 bg-neutral-100 text-neutral-700'
-                    : 'bg-[var(--card)] text-[var(--muted-foreground)] hover:bg-[var(--muted)]')
+                    ? 'border-[var(--border-strong)] bg-[var(--muted)] text-[var(--foreground)]'
+                    : 'border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] hover:bg-[var(--muted)]')
                 }
               >
                 Non validé
@@ -215,7 +241,7 @@ export function EntrepriseDetail({
             Décideurs à contacter {decideurs.length > 0 && `(${decideurs.length})`}
           </SectionTitle>
           {decideurs.length === 0 && (
-            <p className="rounded-md border border-amber-200 bg-amber-50 p-2.5 text-xs text-amber-800">
+            <p className="rounded-md border border-amber-400/25 bg-amber-400/10 p-2.5 text-xs text-amber-300">
               Aucun décideur identifié. À rechercher (Directeur, DG, DAF, Resp. IT/Achats) via
               LinkedIn ou le site de l'entreprise.
             </p>
@@ -261,7 +287,7 @@ function ContactCard({
     : infererEmail(c.prenom, c.nom, e, e.contacts)
 
   return (
-    <div className="rounded-md border bg-white p-2.5">
+    <div className="rounded-md border bg-[var(--card-2)] p-2.5">
       <div className="flex items-center justify-between">
         <div className="min-w-0">
           <div className="text-sm font-medium">{nomComplet}</div>
@@ -305,7 +331,7 @@ function EmailLigne({
       </a>
       {!verifie && (
         <span
-          className="rounded bg-amber-50 px-1 py-0.5 text-[10px] font-medium text-amber-700"
+          className="rounded bg-amber-400/10 px-1 py-0.5 text-[10px] font-medium text-amber-300"
           title={
             confiance === 'observe'
               ? "Déduit du format d'email observé dans l'entreprise"
@@ -324,7 +350,11 @@ function EmailLigne({
         className="ml-auto text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
         title="Copier"
       >
-        {copied ? <Check className="h-3.5 w-3.5 text-green-600" /> : <Copy className="h-3.5 w-3.5" />}
+        {copied ? (
+          <Check className="h-3.5 w-3.5 text-[var(--color-salt)]" />
+        ) : (
+          <Copy className="h-3.5 w-3.5" />
+        )}
       </button>
     </div>
   )
@@ -357,15 +387,12 @@ function EmailDraft({
           Brouillon email — 1er RDV
         </span>
       </SectionTitle>
-      <div className="rounded-md border bg-[var(--muted)] p-3">
+      <div className="rounded-md border bg-[var(--card-2)] p-3">
         <div className="mb-1 text-xs font-medium">Objet : {objet}</div>
         <pre className="whitespace-pre-wrap font-sans text-xs leading-relaxed text-[var(--foreground)]">
           {corps}
         </pre>
-        <button
-          onClick={copier}
-          className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-[var(--color-salt)] px-2.5 py-1.5 text-xs font-medium text-white transition hover:bg-[var(--color-salt-dark)]"
-        >
+        <button onClick={copier} className="btn-salt mt-2 inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs">
           {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
           Copier l'email
         </button>
@@ -377,7 +404,7 @@ function EmailDraft({
 function ContactPill({ jours }: { jours: number | null }) {
   if (jours === null) {
     return (
-      <span className="rounded bg-red-50 px-1.5 py-0.5 text-[11px] font-medium text-red-600">
+      <span className="rounded bg-red-500/15 px-1.5 py-0.5 text-[11px] font-medium text-red-300">
         Jamais contactée
       </span>
     )
@@ -389,7 +416,7 @@ function ContactPill({ jours }: { jours: number | null }) {
     <span
       className={
         'rounded px-1.5 py-0.5 text-[11px] font-medium ' +
-        (ancien ? 'bg-amber-50 text-amber-700' : 'bg-green-50 text-green-700')
+        (ancien ? 'bg-amber-400/10 text-amber-300' : 'bg-[var(--salt-soft)] text-[var(--color-salt)]')
       }
     >
       {label}

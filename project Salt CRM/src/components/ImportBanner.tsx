@@ -66,7 +66,7 @@ export function ImportBanner({ vide }: { vide: boolean }) {
         type="button"
         disabled={busy}
         onClick={() => inputRef.current?.click()}
-        className="inline-flex items-center gap-2 rounded-md bg-[var(--color-salt)] px-3.5 py-2 text-sm font-medium text-white transition hover:bg-[var(--color-salt-dark)] disabled:opacity-60"
+        className="btn-salt inline-flex items-center gap-2 px-3.5 py-2 text-sm disabled:opacity-60"
       >
         {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
         {label}
