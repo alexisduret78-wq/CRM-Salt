@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils'
 export function SaltLogo({ className = '' }: { className?: string }) {
   return (
     <img
-      src="/salt_logo_white-big.png"
+      src="/salt-logo.svg"
       alt="Salt"
       className={cn('w-auto select-none', className)}
       draggable={false}
