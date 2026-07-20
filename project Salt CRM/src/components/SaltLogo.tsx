@@ -1,22 +1,19 @@
 import { cn } from '@/lib/utils'
 
-// Logotype « Salt. » — reproduit le wordmark officiel : capitale S, serif,
-// point final, blanc sur fond sombre (sans le rond noir → « sans le blanc autour »).
-// Pour un rendu 1:1 avec le SVG officiel, dépose le fichier dans public/
-// (ex. salt-logo.svg) et remplace le <span> par <img src="/salt-logo.svg" />.
+// Logo officiel Salt (wordmark blanc, transparent) — fourni dans public/.
+// La taille se contrôle via une classe de hauteur (ex. h-7).
 export function SaltLogo({ className = '' }: { className?: string }) {
   return (
-    <span
-      className={cn('font-bold leading-none tracking-[-0.01em] select-none', className)}
-      style={{ fontFamily: "Georgia, 'Times New Roman', 'Playfair Display', serif" }}
-      aria-label="Salt"
-    >
-      Salt.
-    </span>
+    <img
+      src="/salt_logo_white-big.png"
+      alt="Salt"
+      className={cn('w-auto select-none', className)}
+      draggable={false}
+    />
   )
 }
 
-// Lockup : « Salt. » + pastille CRM.
+// Lockup : logo Salt + pastille CRM.
 export function SaltLockup({
   size = 'md',
   subtitle,
@@ -24,12 +21,12 @@ export function SaltLockup({
   size?: 'sm' | 'md' | 'lg'
   subtitle?: string
 }) {
-  const wordmark = size === 'lg' ? 'text-[30px]' : size === 'sm' ? 'text-lg' : 'text-[26px]'
+  const h = size === 'lg' ? 'h-9' : size === 'sm' ? 'h-5' : 'h-7'
   const chip = size === 'sm' ? 'text-[9px] px-1 py-0.5' : 'text-[10px] px-1.5 py-0.5'
   return (
     <div>
-      <div className="flex items-baseline gap-1.5">
-        <SaltLogo className={cn(wordmark, 'text-white')} />
+      <div className="flex items-center gap-2">
+        <SaltLogo className={h} />
         <span
           className={cn(
             'rounded font-bold uppercase tracking-wide text-[var(--color-salt-ink)]',
@@ -40,7 +37,7 @@ export function SaltLockup({
           CRM
         </span>
       </div>
-      {subtitle && <div className="mt-1 text-[11px] text-[var(--sidebar-muted)]">{subtitle}</div>}
+      {subtitle && <div className="mt-1.5 text-[11px] text-[var(--sidebar-muted)]">{subtitle}</div>}
     </div>
   )
 }

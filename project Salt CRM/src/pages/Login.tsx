@@ -23,8 +23,8 @@ export default function Login() {
     <div className="flex h-full items-center justify-center bg-[var(--background)] px-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <div className="mb-3 flex items-baseline justify-center gap-2">
-            <SaltLogo className="text-4xl text-[var(--foreground)]" />
+          <div className="mb-3 flex items-center justify-center gap-2.5">
+            <SaltLogo className="h-10" />
             <span className="rounded bg-[var(--color-salt)] px-1.5 py-0.5 text-[11px] font-bold uppercase text-[var(--color-salt-ink)]">
               CRM
             </span>

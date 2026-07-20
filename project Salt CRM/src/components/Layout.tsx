@@ -52,8 +52,8 @@ export function Layout({ children }: { children: ReactNode }) {
       {/* Barre mobile */}
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex items-center justify-between border-b bg-[var(--card)] px-4 py-2.5 md:hidden">
-          <div className="flex items-baseline gap-1.5">
-            <SaltLogo className="text-xl text-[var(--foreground)]" />
+          <div className="flex items-center gap-2">
+            <SaltLogo className="h-6" />
             <span className="rounded bg-[var(--color-salt)] px-1 py-0.5 text-[9px] font-bold uppercase text-[var(--color-salt-ink)]">
               CRM
             </span>
