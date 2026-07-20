@@ -1,21 +1,22 @@
 import { cn } from '@/lib/utils'
 
-// Logotype « salt » (minuscules, extrabold, tracking serré).
-// Reproduit le wordmark Salt. Pour un rendu 1:1 avec le SVG officiel,
-// dépose le fichier dans public/ et remplace ce composant par une <img>.
+// Logotype « Salt. » — reproduit le wordmark officiel : capitale S, serif,
+// point final, blanc sur fond sombre (sans le rond noir → « sans le blanc autour »).
+// Pour un rendu 1:1 avec le SVG officiel, dépose le fichier dans public/
+// (ex. salt-logo.svg) et remplace le <span> par <img src="/salt-logo.svg" />.
 export function SaltLogo({ className = '' }: { className?: string }) {
   return (
     <span
-      className={cn('font-extrabold lowercase leading-none tracking-[-0.04em] select-none', className)}
-      style={{ fontFamily: "'Inter', system-ui, sans-serif" }}
+      className={cn('font-bold leading-none tracking-[-0.01em] select-none', className)}
+      style={{ fontFamily: "Georgia, 'Times New Roman', 'Playfair Display', serif" }}
       aria-label="Salt"
     >
-      salt
+      Salt.
     </span>
   )
 }
 
-// Lockup complet : « salt » + pastille CRM.
+// Lockup : « Salt. » + pastille CRM.
 export function SaltLockup({
   size = 'md',
   subtitle,
@@ -39,9 +40,7 @@ export function SaltLockup({
           CRM
         </span>
       </div>
-      {subtitle && (
-        <div className="mt-1 text-[11px] text-[var(--sidebar-muted)]">{subtitle}</div>
-      )}
+      {subtitle && <div className="mt-1 text-[11px] text-[var(--sidebar-muted)]">{subtitle}</div>}
     </div>
   )
 }
