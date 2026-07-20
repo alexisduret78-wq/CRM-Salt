@@ -32,19 +32,44 @@ export function useEntreprises() {
   })
 }
 
-// Bascule le statut Pamela (validé / non validé) d'une entreprise.
-export function useTogglePamela() {
+type PatchEntreprise = Partial<
+  Pick<
+    Entreprise,
+    'pamela_valide' | 'date_dernier_contact' | 'couleur' | 'priorite' | 'notes_consolidees'
+  >
+>
+
+// Mutation générique : met à jour une entreprise avec MAJ optimiste (UI instantanée).
+export function useUpdateEntreprise() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async ({ id, valide }: { id: string; valide: boolean }) => {
-      const { error } = await supabase
-        .from('entreprises')
-        .update({ pamela_valide: valide })
-        .eq('id', id)
+    mutationFn: async ({ id, patch }: { id: string; patch: PatchEntreprise }) => {
+      const { error } = await supabase.from('entreprises').update(patch).eq('id', id)
       if (error) throw error
     },
-    onSuccess: () => {
+    onMutate: async ({ id, patch }) => {
+      await qc.cancelQueries({ queryKey: ['entreprises'] })
+      const prev = qc.getQueryData<EntrepriseAvecContacts[]>(['entreprises'])
+      qc.setQueryData<EntrepriseAvecContacts[]>(['entreprises'], (old) =>
+        (old ?? []).map((e) => (e.id === id ? { ...e, ...patch } : e))
+      )
+      return { prev }
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) qc.setQueryData(['entreprises'], ctx.prev)
+    },
+    onSettled: () => {
       qc.invalidateQueries({ queryKey: ['entreprises'] })
     },
   })
+}
+
+// Raccourci historique : bascule le statut Pamela (validé / non validé).
+export function useTogglePamela() {
+  const update = useUpdateEntreprise()
+  return {
+    ...update,
+    mutate: ({ id, valide }: { id: string; valide: boolean }) =>
+      update.mutate({ id, patch: { pamela_valide: valide } }),
+  }
 }

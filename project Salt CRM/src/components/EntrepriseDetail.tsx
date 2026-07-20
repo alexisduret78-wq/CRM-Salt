@@ -10,12 +10,16 @@ import {
   Copy,
   Check,
   Sparkles,
+  ShieldCheck,
+  CalendarCheck,
+  RotateCcw,
+  Hash,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { EntrepriseAvecContacts } from '@/lib/database.types'
-import type { ScoreDetail } from '@/lib/scoring'
+import { joursDepuisDernierContact, segmentDe, type ScoreDetail } from '@/lib/scoring'
 import { infererEmail } from '@/lib/email'
-import { useTogglePamela } from '@/hooks/useEntreprises'
+import { useTogglePamela, useUpdateEntreprise } from '@/hooks/useEntreprises'
 import { CouleurBadge, TierBadge } from '@/components/badges'
 
 export function EntrepriseDetail({
@@ -28,11 +32,14 @@ export function EntrepriseDetail({
   onClose: () => void
 }) {
   const togglePamela = useTogglePamela()
+  const update = useUpdateEntreprise()
   const decideurs = e.contacts.filter((c) => c.est_decideur)
   const autres = e.contacts.filter((c) => !c.est_decideur)
+  const jours = joursDepuisDernierContact(e.date_dernier_contact)
+  const seg = segmentDe(e)
 
   return (
-    <aside className="flex w-[420px] shrink-0 flex-col border-l bg-[var(--card)]">
+    <aside className="flex w-[440px] shrink-0 flex-col border-l bg-[var(--card)] shadow-[var(--shadow-lg)] animate-slidein">
       {/* En-tête */}
       <div className="flex items-start justify-between border-b px-5 py-4">
         <div className="min-w-0">
@@ -50,6 +57,16 @@ export function EntrepriseDetail({
             {e.taille_employes != null && (
               <span className="inline-flex items-center gap-1">
                 <Users className="h-3 w-3" /> {e.taille_employes} empl.
+              </span>
+            )}
+            {e.business_uid && (
+              <span className="inline-flex items-center gap-1 tabular">
+                <Hash className="h-3 w-3" /> {e.business_uid}
+              </span>
+            )}
+            {seg && (
+              <span className="rounded bg-[var(--muted)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--foreground)]">
+                {seg}
               </span>
             )}
           </div>
@@ -115,40 +132,81 @@ export function EntrepriseDetail({
           </dl>
         </section>
 
-        {/* Statut Pamela */}
-        <section>
-          <SectionTitle>Statut CRM interne (Pamela)</SectionTitle>
-          <div className="flex items-center gap-2">
-            <button
-              disabled={togglePamela.isPending}
-              onClick={() => togglePamela.mutate({ id: e.id, valide: true })}
-              className={
-                'flex-1 rounded-md border px-3 py-2 text-sm font-medium transition ' +
-                (e.pamela_valide
-                  ? 'border-green-300 bg-green-50 text-green-700'
-                  : 'bg-white text-[var(--muted-foreground)] hover:bg-[var(--muted)]')
-              }
-            >
-              ✓ Validé
-            </button>
-            <button
-              disabled={togglePamela.isPending}
-              onClick={() => togglePamela.mutate({ id: e.id, valide: false })}
-              className={
-                'flex-1 rounded-md border px-3 py-2 text-sm font-medium transition ' +
-                (!e.pamela_valide
-                  ? 'border-neutral-300 bg-neutral-100 text-neutral-700'
-                  : 'bg-white text-[var(--muted-foreground)] hover:bg-[var(--muted)]')
-              }
-            >
-              Non validé
-            </button>
+        {/* Suivi commercial */}
+        <section className="rounded-lg border bg-[var(--muted)]/40 p-3">
+          <SectionTitle>Suivi commercial</SectionTitle>
+
+          {/* Statut de contact */}
+          <div className="mb-3">
+            <div className="mb-1.5 flex items-center justify-between">
+              <span className="text-xs text-[var(--muted-foreground)]">Dernier contact</span>
+              <ContactPill jours={jours} />
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                disabled={update.isPending}
+                onClick={() =>
+                  update.mutate({
+                    id: e.id,
+                    patch: { date_dernier_contact: new Date().toISOString() },
+                  })
+                }
+                className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-md bg-[var(--foreground)] px-3 py-2 text-xs font-medium text-white transition hover:opacity-90"
+              >
+                <CalendarCheck className="h-3.5 w-3.5" />
+                Marquer contactée aujourd'hui
+              </button>
+              {e.date_dernier_contact && (
+                <button
+                  disabled={update.isPending}
+                  onClick={() => update.mutate({ id: e.id, patch: { date_dernier_contact: null } })}
+                  title="Réinitialiser (jamais contactée)"
+                  className="rounded-md border bg-[var(--card)] p-2 text-[var(--muted-foreground)] transition hover:text-[var(--color-salt)]"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
           </div>
-          {e.statut_pamela_origine && (
-            <p className="mt-1.5 text-xs text-[var(--muted-foreground)]">
-              Statut d'origine : {e.statut_pamela_origine}
-            </p>
-          )}
+
+          {/* Statut Pamela */}
+          <div>
+            <div className="mb-1.5 flex items-center gap-1.5 text-xs text-[var(--muted-foreground)]">
+              <ShieldCheck className="h-3.5 w-3.5" />
+              Statut CRM interne (Pamela)
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                disabled={togglePamela.isPending}
+                onClick={() => togglePamela.mutate({ id: e.id, valide: true })}
+                className={
+                  'flex-1 rounded-md border px-3 py-2 text-sm font-medium transition ' +
+                  (e.pamela_valide
+                    ? 'border-green-300 bg-green-50 text-green-700'
+                    : 'bg-[var(--card)] text-[var(--muted-foreground)] hover:bg-[var(--muted)]')
+                }
+              >
+                ✓ Validé
+              </button>
+              <button
+                disabled={togglePamela.isPending}
+                onClick={() => togglePamela.mutate({ id: e.id, valide: false })}
+                className={
+                  'flex-1 rounded-md border px-3 py-2 text-sm font-medium transition ' +
+                  (!e.pamela_valide
+                    ? 'border-neutral-300 bg-neutral-100 text-neutral-700'
+                    : 'bg-[var(--card)] text-[var(--muted-foreground)] hover:bg-[var(--muted)]')
+                }
+              >
+                Non validé
+              </button>
+            </div>
+            {e.statut_pamela_origine && (
+              <p className="mt-1.5 text-xs text-[var(--muted-foreground)]">
+                Origine : {e.statut_pamela_origine}
+              </p>
+            )}
+          </div>
         </section>
 
         {/* Décideurs */}
@@ -313,6 +371,29 @@ function EmailDraft({
         </button>
       </div>
     </section>
+  )
+}
+
+function ContactPill({ jours }: { jours: number | null }) {
+  if (jours === null) {
+    return (
+      <span className="rounded bg-red-50 px-1.5 py-0.5 text-[11px] font-medium text-red-600">
+        Jamais contactée
+      </span>
+    )
+  }
+  const ancien = jours > 180
+  const label =
+    jours === 0 ? "Aujourd'hui" : jours < 60 ? `Il y a ${jours} j` : `Il y a ${Math.round(jours / 30)} mois`
+  return (
+    <span
+      className={
+        'rounded px-1.5 py-0.5 text-[11px] font-medium ' +
+        (ancien ? 'bg-amber-50 text-amber-700' : 'bg-green-50 text-green-700')
+      }
+    >
+      {label}
+    </span>
   )
 }
 
