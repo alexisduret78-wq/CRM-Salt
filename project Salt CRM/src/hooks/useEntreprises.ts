@@ -35,7 +35,12 @@ export function useEntreprises() {
 type PatchEntreprise = Partial<
   Pick<
     Entreprise,
-    'pamela_valide' | 'date_dernier_contact' | 'couleur' | 'priorite' | 'notes_consolidees'
+    | 'pamela_valide'
+    | 'date_dernier_contact'
+    | 'date_prochaine_relance'
+    | 'couleur'
+    | 'priorite'
+    | 'notes_consolidees'
   >
 >
 

@@ -14,9 +14,11 @@ import {
   SlidersHorizontal,
   Rows3,
   Columns3,
+  Bell,
 } from 'lucide-react'
 import { useEntreprises, useUpdateEntreprise } from '@/hooks/useEntreprises'
 import { estDansZone, scorerEntreprise, segmentDe, type ScoreDetail } from '@/lib/scoring'
+import { relanceInfo, totauxPotentiel, fmtCHFk, fmtDateCourt } from '@/lib/estimation'
 import type { EntrepriseAvecContacts } from '@/lib/database.types'
 import { TierBadge } from '@/components/badges'
 import { EntrepriseDetail } from '@/components/EntrepriseDetail'
@@ -43,6 +45,7 @@ export default function Prospection() {
   const [tailleMin, setTailleMin] = useState(50)
   const [statut, setStatut] = useState<StatutFiltre>('tous')
   const [sansDecideur, setSansDecideur] = useState(false)
+  const [relanceDue, setRelanceDue] = useState(false)
   const [pamela, setPamela] = useState<PamelaFiltre>('tous')
   const [source, setSource] = useState<SourceFiltre>('claude')
   const [segment, setSegment] = useState<string>('tous')
@@ -89,6 +92,7 @@ export default function Prospection() {
       total: scope.length,
       prioA: scope.filter((s) => s.score.tier === 'A').length,
       sansDecideur: scope.filter((s) => s.score.statutInterlocuteur === 'aucun').length,
+      aRelancer: scope.filter((s) => relanceInfo(s.entreprise).statut === 'due').length,
       pamelaAValider: scope.filter((s) => !s.entreprise.pamela_valide).length,
     }),
     [scope]
@@ -104,6 +108,7 @@ export default function Prospection() {
       if (e.taille_employes != null && e.taille_employes < tailleMin) return false
       if (e.taille_employes == null && tailleMin > 50) return false
       if (sansDecideur && score.statutInterlocuteur !== 'aucun') return false
+      if (relanceDue && relanceInfo(e).statut !== 'due') return false
       if (pamela === 'valide' && !e.pamela_valide) return false
       if (pamela === 'non_valide' && e.pamela_valide) return false
       if (q) {
@@ -119,7 +124,9 @@ export default function Prospection() {
       if (tri === 'nom') return a.entreprise.nom.localeCompare(b.entreprise.nom, 'fr')
       return b.score.score - a.score.score
     })
-  }, [scope, recherche, segment, canton, tier, tailleMin, sansDecideur, pamela, tri])
+  }, [scope, recherche, segment, canton, tier, tailleMin, sansDecideur, relanceDue, pamela, tri])
+
+  const potentiel = useMemo(() => totauxPotentiel(filtreesBase), [filtreesBase])
 
   // Liste : on applique en plus le statut de contact.
   const filtreesListe = useMemo(
@@ -138,7 +145,8 @@ export default function Prospection() {
     (tier !== 'tous' ? 1 : 0) +
     (statut !== 'tous' ? 1 : 0) +
     (pamela !== 'tous' ? 1 : 0) +
-    (sansDecideur ? 1 : 0)
+    (sansDecideur ? 1 : 0) +
+    (relanceDue ? 1 : 0)
 
   function reset() {
     setSegment('tous')
@@ -147,6 +155,7 @@ export default function Prospection() {
     setStatut('tous')
     setPamela('tous')
     setSansDecideur(false)
+    setRelanceDue(false)
     setRecherche('')
   }
 
@@ -208,7 +217,7 @@ export default function Prospection() {
           </div>
 
           {/* KPI */}
-          <div className="mt-4 grid grid-cols-2 gap-3 pb-4 lg:grid-cols-4">
+          <div className="mt-4 grid grid-cols-2 gap-3 pb-4 md:grid-cols-3 lg:grid-cols-5">
             <Kpi label="Cibles en zone" value={kpis.total} icon={<Layers className="h-4 w-4" />} onClick={reset} />
             <Kpi
               label="Priorité A"
@@ -217,6 +226,14 @@ export default function Prospection() {
               tone="salt"
               active={tier === 'A'}
               onClick={() => setTier(tier === 'A' ? 'tous' : 'A')}
+            />
+            <Kpi
+              label="À relancer"
+              value={kpis.aRelancer}
+              icon={<Bell className="h-4 w-4" />}
+              tone="amber"
+              active={relanceDue}
+              onClick={() => setRelanceDue(!relanceDue)}
             />
             <Kpi
               label="Sans décideur"
@@ -349,6 +366,9 @@ export default function Prospection() {
               <Toggle checked={sansDecideur} onChange={setSansDecideur}>
                 Sans décideur
               </Toggle>
+              <Toggle checked={relanceDue} onChange={setRelanceDue} icon={<Bell className="h-3.5 w-3.5" />}>
+                À relancer
+              </Toggle>
               <Toggle checked={zoneUniquement} onChange={setZoneUniquement} icon={<MapPin className="h-3.5 w-3.5" />}>
                 Zone GE + Côte
               </Toggle>
@@ -366,12 +386,22 @@ export default function Prospection() {
             </div>
           )}
 
-          <div className="mt-2 text-xs text-[var(--muted-foreground)]">
-            {isLoading
-              ? 'Chargement…'
-              : vue === 'kanban'
-                ? `${filtreesBase.length} entreprise(s) · glisse les cartes pour faire avancer le pipeline`
-                : `${filtreesListe.length} entreprise(s) · triées par ${triLabel(tri)}`}
+          <div className="mt-2 flex flex-wrap items-center gap-x-2 text-xs text-[var(--muted-foreground)]">
+            <span>
+              {isLoading
+                ? 'Chargement…'
+                : vue === 'kanban'
+                  ? `${filtreesBase.length} entreprise(s) · glisse les cartes pour faire avancer le pipeline`
+                  : `${filtreesListe.length} entreprise(s) · triées par ${triLabel(tri)}`}
+            </span>
+            {!isLoading && potentiel.lignes > 0 && (
+              <span className="tabular">
+                · potentiel ≈ {potentiel.lignes} lignes ·{' '}
+                <span className="font-medium text-[var(--color-salt)]">
+                  {fmtCHFk(potentiel.valeur)}/an
+                </span>
+              </span>
+            )}
           </div>
         </div>
 
@@ -459,6 +489,7 @@ function Ligne({
   const update = useUpdateEntreprise()
   const decideur = e.contacts.find((c) => c.est_decideur)
   const seg = segmentDe(e)
+  const rel = relanceInfo(e)
 
   return (
     <tr
@@ -485,6 +516,20 @@ function Ligne({
             </span>
           )}
           {e.business_uid && <span className="tabular opacity-70">· {e.business_uid}</span>}
+          {rel.statut !== 'aucune' && rel.date && (
+            <span
+              className={
+                'inline-flex items-center gap-0.5 rounded px-1 py-0.5 text-[10px] font-medium ' +
+                (rel.statut === 'due'
+                  ? 'bg-amber-400/15 text-amber-300'
+                  : 'bg-white/5 text-[var(--muted-foreground)]')
+              }
+              title={rel.statut === 'due' ? 'Relance due' : 'Relance à venir'}
+            >
+              <Bell className="h-2.5 w-2.5" />
+              {rel.statut === 'due' ? 'à relancer' : fmtDateCourt(rel.date)}
+            </span>
+          )}
         </div>
       </Td>
       <Td className="hidden lg:table-cell">

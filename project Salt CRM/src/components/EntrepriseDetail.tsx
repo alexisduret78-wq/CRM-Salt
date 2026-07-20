@@ -14,11 +14,22 @@ import {
   CalendarCheck,
   RotateCcw,
   Hash,
+  Bell,
+  Signal,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { EntrepriseAvecContacts } from '@/lib/database.types'
 import { joursDepuisDernierContact, segmentDe, type ScoreDetail } from '@/lib/scoring'
 import { STAGES, stageDe, STAGE_COLUMN } from '@/lib/pipeline'
+import {
+  lignesEstimees,
+  valeurAnnuelle,
+  fmtCHF,
+  relanceInfo,
+  toInputDate,
+  isoDepuisInput,
+  dansNJours,
+} from '@/lib/estimation'
 import { infererEmail } from '@/lib/email'
 import { useTogglePamela, useUpdateEntreprise } from '@/hooks/useEntreprises'
 import { CouleurBadge, TierBadge } from '@/components/badges'
@@ -38,6 +49,8 @@ export function EntrepriseDetail({
   const autres = e.contacts.filter((c) => !c.est_decideur)
   const jours = joursDepuisDernierContact(e.date_dernier_contact)
   const seg = segmentDe(e)
+  const lignes = lignesEstimees(e)
+  const rel = relanceInfo(e)
 
   return (
     <aside className="flex w-[440px] shrink-0 flex-col border-l bg-[var(--card)] shadow-[var(--shadow-lg)] animate-slidein">
@@ -93,6 +106,33 @@ export function EntrepriseDetail({
                 </li>
               ))}
             </ul>
+          </section>
+        )}
+
+        {/* Potentiel estimé */}
+        {lignes > 0 && (
+          <section className="rounded-lg border border-[color:rgba(30,215,96,0.3)] bg-[var(--salt-soft)] p-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Signal className="h-4 w-4 text-[var(--color-salt)]" />
+                <span className="text-xs font-medium text-[var(--muted-foreground)]">
+                  Potentiel mobile estimé
+                </span>
+              </div>
+              <span
+                className="text-[10px] text-[var(--muted-foreground)]"
+                title="Estimation : part d'employés équipés × 35 CHF/mois/ligne. À affiner."
+              >
+                est.
+              </span>
+            </div>
+            <div className="mt-1.5 flex items-baseline gap-2">
+              <span className="text-2xl font-semibold tabular">≈ {lignes}</span>
+              <span className="text-sm text-[var(--muted-foreground)]">lignes mobiles</span>
+            </div>
+            <div className="mt-0.5 text-sm font-medium text-[var(--color-salt)] tabular">
+              {fmtCHF(valeurAnnuelle(e))} / an potentiel
+            </div>
           </section>
         )}
 
@@ -188,6 +228,65 @@ export function EntrepriseDetail({
                   onClick={() => update.mutate({ id: e.id, patch: { date_dernier_contact: null } })}
                   title="Réinitialiser (jamais contactée)"
                   className="rounded-md border bg-[var(--card)] p-2 text-[var(--muted-foreground)] transition hover:text-[var(--color-salt)]"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Prochaine relance */}
+          <div className="mb-3">
+            <div className="mb-1.5 flex items-center justify-between">
+              <span className="inline-flex items-center gap-1.5 text-xs text-[var(--muted-foreground)]">
+                <Bell className="h-3.5 w-3.5" /> Prochaine relance
+              </span>
+              {rel.statut !== 'aucune' && rel.date && (
+                <span
+                  className={
+                    'rounded px-1.5 py-0.5 text-[11px] font-medium ' +
+                    (rel.statut === 'due'
+                      ? 'bg-amber-400/15 text-amber-300'
+                      : 'bg-[var(--salt-soft)] text-[var(--color-salt)]')
+                  }
+                >
+                  {rel.statut === 'due'
+                    ? rel.jours === 0
+                      ? "Aujourd'hui"
+                      : `En retard (${Math.abs(rel.jours ?? 0)} j)`
+                    : `Dans ${rel.jours} j`}
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="date"
+                value={toInputDate(e.date_prochaine_relance)}
+                onChange={(ev) =>
+                  update.mutate({
+                    id: e.id,
+                    patch: { date_prochaine_relance: isoDepuisInput(ev.target.value) },
+                  })
+                }
+                className="flex-1 rounded-md border bg-[var(--card)] px-2.5 py-1.5 text-xs text-[var(--foreground)] outline-none [color-scheme:dark] focus:border-[var(--color-salt)]"
+              />
+              <button
+                onClick={() => update.mutate({ id: e.id, patch: { date_prochaine_relance: dansNJours(7) } })}
+                className="rounded-md border bg-[var(--card)] px-2 py-1.5 text-[11px] font-medium text-[var(--muted-foreground)] transition hover:text-[var(--color-salt)]"
+              >
+                +7 j
+              </button>
+              <button
+                onClick={() => update.mutate({ id: e.id, patch: { date_prochaine_relance: dansNJours(30) } })}
+                className="rounded-md border bg-[var(--card)] px-2 py-1.5 text-[11px] font-medium text-[var(--muted-foreground)] transition hover:text-[var(--color-salt)]"
+              >
+                +30 j
+              </button>
+              {e.date_prochaine_relance && (
+                <button
+                  onClick={() => update.mutate({ id: e.id, patch: { date_prochaine_relance: null } })}
+                  title="Retirer la relance"
+                  className="rounded-md border bg-[var(--card)] p-1.5 text-[var(--muted-foreground)] transition hover:text-[var(--color-salt)]"
                 >
                   <RotateCcw className="h-3.5 w-3.5" />
                 </button>

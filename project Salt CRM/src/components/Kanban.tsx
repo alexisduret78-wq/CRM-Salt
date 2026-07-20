@@ -10,10 +10,17 @@ import {
   type DragStartEvent,
   type DragEndEvent,
 } from '@dnd-kit/core'
-import { MapPin, UserX, ShieldCheck, Sparkles, GripVertical } from 'lucide-react'
+import { MapPin, UserX, ShieldCheck, Sparkles, GripVertical, Bell } from 'lucide-react'
 import type { EntrepriseAvecContacts } from '@/lib/database.types'
 import type { ScoreDetail } from '@/lib/scoring'
 import { STAGES, stageDe, STAGE_COLUMN, type Stage } from '@/lib/pipeline'
+import {
+  lignesEstimees,
+  valeurAnnuelle,
+  fmtCHFk,
+  relanceInfo,
+  fmtDateCourt,
+} from '@/lib/estimation'
 import { useUpdateEntreprise } from '@/hooks/useEntreprises'
 import { TierBadge } from '@/components/badges'
 
@@ -44,6 +51,21 @@ export function Kanban({
     return map
   }, [items])
 
+  const totaux = useMemo(() => {
+    const t: Record<Stage, { lignes: number; valeur: number }> = {
+      a_contacter: { lignes: 0, valeur: 0 },
+      contactee: { lignes: 0, valeur: 0 },
+      rdv: { lignes: 0, valeur: 0 },
+      client: { lignes: 0, valeur: 0 },
+    }
+    for (const k of Object.keys(parStade) as Stage[])
+      for (const it of parStade[k]) {
+        t[k].lignes += lignesEstimees(it.entreprise)
+        t[k].valeur += valeurAnnuelle(it.entreprise)
+      }
+    return t
+  }, [parStade])
+
   const activeItem = activeId ? items.find((i) => i.entreprise.id === activeId) ?? null : null
 
   function onDragStart(e: DragStartEvent) {
@@ -67,7 +89,15 @@ export function Kanban({
     <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
       <div className="flex h-full gap-3 overflow-x-auto px-6 py-4">
         {STAGES.map((s) => (
-          <Colonne key={s.key} stage={s.key} label={s.label} hint={s.hint} count={parStade[s.key].length}>
+          <Colonne
+            key={s.key}
+            stage={s.key}
+            label={s.label}
+            hint={s.hint}
+            count={parStade[s.key].length}
+            lignes={totaux[s.key].lignes}
+            valeur={totaux[s.key].valeur}
+          >
             {parStade[s.key].map((it) => (
               <Carte
                 key={it.entreprise.id}
@@ -94,18 +124,22 @@ function Colonne({
   label,
   hint,
   count,
+  lignes,
+  valeur,
   children,
 }: {
   stage: Stage
   label: string
   hint: string
   count: number
+  lignes: number
+  valeur: number
   children: React.ReactNode
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: stage })
   return (
     <div className="flex w-[300px] shrink-0 flex-col">
-      <div className="mb-2 flex items-center justify-between px-1">
+      <div className="mb-2 px-1">
         <div className="flex items-center gap-2">
           <span
             className={
@@ -123,6 +157,9 @@ function Colonne({
           <span className="rounded-full bg-white/5 px-1.5 py-0.5 text-[11px] font-medium text-[var(--muted-foreground)] tabular">
             {count}
           </span>
+        </div>
+        <div className="mt-1 pl-4 text-[11px] text-[var(--muted-foreground)] tabular">
+          ≈ {lignes} lignes · <span className="text-[var(--color-salt)]">{fmtCHFk(valeur)}/an</span>
         </div>
       </div>
       <div
@@ -170,6 +207,8 @@ function CarteContenu({
 }) {
   const { entreprise: e, score } = item
   const decideur = e.contacts.find((c) => c.est_decideur)
+  const lignes = lignesEstimees(e)
+  const rel = relanceInfo(e)
   return (
     <div
       className={
@@ -211,25 +250,40 @@ function CarteContenu({
 
       <div className="mt-2 flex items-center justify-between gap-2">
         <TierBadge tier={score.tier} score={score.score} />
-        {e.pamela_valide ? (
-          <span className="inline-flex items-center gap-1 text-[10px] font-medium text-[var(--color-salt)]">
-            <ShieldCheck className="h-3 w-3" /> Pamela
+        {lignes > 0 && (
+          <span className="text-[10px] font-medium text-[var(--muted-foreground)] tabular">
+            ≈ {lignes} lignes
           </span>
-        ) : (
-          <span className="text-[10px] text-[var(--muted-foreground)]">Pamela à valider</span>
         )}
       </div>
 
-      <div className="mt-2 border-t border-[var(--border)] pt-2 text-[11px]">
+      <div className="mt-2 flex items-center justify-between gap-2 border-t border-[var(--border)] pt-2 text-[11px]">
         {decideur ? (
-          <span className="text-[var(--foreground)]">
+          <span className="truncate text-[var(--foreground)]">
             {[decideur.prenom, decideur.nom].filter(Boolean).join(' ')}
           </span>
         ) : (
           <span className="inline-flex items-center gap-1 text-amber-300">
-            <UserX className="h-3 w-3" /> décideur à identifier
+            <UserX className="h-3 w-3" /> à identifier
           </span>
         )}
+        <div className="flex shrink-0 items-center gap-1.5">
+          {rel.statut !== 'aucune' && rel.date && (
+            <span
+              className={
+                'inline-flex items-center gap-0.5 rounded px-1 py-0.5 text-[10px] font-medium ' +
+                (rel.statut === 'due'
+                  ? 'bg-amber-400/15 text-amber-300'
+                  : 'bg-white/5 text-[var(--muted-foreground)]')
+              }
+              title={rel.statut === 'due' ? 'Relance due' : 'Relance à venir'}
+            >
+              <Bell className="h-2.5 w-2.5" />
+              {fmtDateCourt(rel.date)}
+            </span>
+          )}
+          {e.pamela_valide && <ShieldCheck className="h-3 w-3 text-[var(--color-salt)]" />}
+        </div>
       </div>
     </div>
   )
