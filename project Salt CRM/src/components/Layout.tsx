@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Target, LogOut, Sparkles, FolderOpen } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
+import { SaltLockup, SaltLogo } from '@/components/SaltLogo'
 
 export function Layout({ children }: { children: ReactNode }) {
   const { session, signOut } = useAuth()
@@ -11,14 +12,8 @@ export function Layout({ children }: { children: ReactNode }) {
     <div className="flex h-full bg-[var(--background)]">
       {/* Rail latéral sombre */}
       <aside className="hidden w-[236px] shrink-0 flex-col bg-[var(--sidebar)] text-[var(--sidebar-foreground)] md:flex">
-        <div className="flex items-center gap-2.5 px-5 py-5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--color-salt)] text-base font-bold text-white shadow-[0_2px_10px_rgba(226,0,26,0.5)]">
-            S
-          </div>
-          <div className="leading-tight">
-            <div className="text-sm font-semibold tracking-tight">Salt CRM</div>
-            <div className="text-[11px] text-[var(--sidebar-muted)]">Prospection Business</div>
-          </div>
+        <div className="px-5 py-5">
+          <SaltLockup size="md" subtitle="Prospection Business · Genève" />
         </div>
 
         <div className="px-3 pt-2">
@@ -57,11 +52,11 @@ export function Layout({ children }: { children: ReactNode }) {
       {/* Barre mobile */}
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex items-center justify-between border-b bg-[var(--card)] px-4 py-2.5 md:hidden">
-          <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--color-salt)] text-xs font-bold text-white">
-              S
-            </div>
-            <span className="text-sm font-semibold">Salt CRM</span>
+          <div className="flex items-baseline gap-1.5">
+            <SaltLogo className="text-xl text-[var(--foreground)]" />
+            <span className="rounded bg-[var(--color-salt)] px-1 py-0.5 text-[9px] font-bold uppercase text-[var(--color-salt-ink)]">
+              CRM
+            </span>
           </div>
           <button
             onClick={() => signOut()}

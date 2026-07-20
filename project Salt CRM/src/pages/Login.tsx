@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { supabaseConfigured } from '@/lib/supabase'
+import { SaltLogo } from '@/components/SaltLogo'
 
 export default function Login() {
   const { signIn } = useAuth()
@@ -22,10 +23,12 @@ export default function Login() {
     <div className="flex h-full items-center justify-center bg-[var(--background)] px-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--color-salt)] text-lg font-bold text-[var(--color-salt-ink)] shadow-[var(--shadow-glow)]">
-            S
+          <div className="mb-3 flex items-baseline justify-center gap-2">
+            <SaltLogo className="text-4xl text-[var(--foreground)]" />
+            <span className="rounded bg-[var(--color-salt)] px-1.5 py-0.5 text-[11px] font-bold uppercase text-[var(--color-salt-ink)]">
+              CRM
+            </span>
           </div>
-          <h1 className="text-xl font-semibold tracking-tight">Salt CRM</h1>
           <p className="mt-1 text-sm text-[var(--muted-foreground)]">
             Prospection Business — Genève &amp; La Côte
           </p>
