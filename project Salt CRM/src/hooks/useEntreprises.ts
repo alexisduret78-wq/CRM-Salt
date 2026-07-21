@@ -2,24 +2,40 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import type { Contact, Entreprise, EntrepriseAvecContacts } from '@/lib/database.types'
 
+// PostgREST plafonne chaque requête à 1000 lignes. Le dataset dépasse ce seuil
+// (≈1800 fichiers + découvertes) → on pagine pour TOUT récupérer.
+const PAGE = 1000
+
+async function fetchAll<T>(table: 'entreprises' | 'contacts'): Promise<T[]> {
+  const rows: T[] = []
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await supabase
+      .from(table)
+      .select('*')
+      .order('id', { ascending: true })
+      .range(from, from + PAGE - 1)
+    if (error) throw error
+    const batch = (data ?? []) as T[]
+    rows.push(...batch)
+    if (batch.length < PAGE) break
+  }
+  return rows
+}
+
 async function fetchEntreprisesAvecContacts(): Promise<EntrepriseAvecContacts[]> {
-  // On récupère tout (dataset ~1800 lignes) et on joint en mémoire.
-  const [entRes, contactRes] = await Promise.all([
-    supabase.from('entreprises').select('*'),
-    supabase.from('contacts').select('*'),
+  const [entreprises, contacts] = await Promise.all([
+    fetchAll<Entreprise>('entreprises'),
+    fetchAll<Contact>('contacts'),
   ])
 
-  if (entRes.error) throw entRes.error
-  if (contactRes.error) throw contactRes.error
-
   const contactsParEntreprise = new Map<string, Contact[]>()
-  for (const c of (contactRes.data ?? []) as Contact[]) {
+  for (const c of contacts) {
     const list = contactsParEntreprise.get(c.entreprise_id) ?? []
     list.push(c)
     contactsParEntreprise.set(c.entreprise_id, list)
   }
 
-  return ((entRes.data ?? []) as Entreprise[]).map((e) => ({
+  return entreprises.map((e) => ({
     ...e,
     contacts: contactsParEntreprise.get(e.id) ?? [],
   }))
