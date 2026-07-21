@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Target, LogOut, Sparkles, FolderOpen } from 'lucide-react'
+import { LogOut } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { SaltLockup, SaltLogo } from '@/components/SaltLogo'
 
@@ -14,19 +14,6 @@ export function Layout({ children }: { children: ReactNode }) {
       <aside className="hidden w-[236px] shrink-0 flex-col bg-[var(--sidebar)] text-[var(--sidebar-foreground)] md:flex">
         <div className="px-5 py-5">
           <SaltLockup size="md" subtitle="Prospection Business · Genève" />
-        </div>
-
-        <div className="px-3 pt-2">
-          <div className="px-2 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--sidebar-muted)]">
-            Pipeline
-          </div>
-          <NavItem active icon={<Target className="h-4 w-4" />}>
-            Prospection
-          </NavItem>
-          <NavItem icon={<Sparkles className="h-4 w-4 text-[var(--color-salt)]" />}>
-            Découvertes
-          </NavItem>
-          <NavItem icon={<FolderOpen className="h-4 w-4" />}>Mes fichiers</NavItem>
         </div>
 
         <div className="mt-auto border-t border-[var(--sidebar-border)] p-3">
@@ -68,30 +55,6 @@ export function Layout({ children }: { children: ReactNode }) {
 
         <main className="min-h-0 flex-1 overflow-hidden">{children}</main>
       </div>
-    </div>
-  )
-}
-
-function NavItem({
-  children,
-  icon,
-  active,
-}: {
-  children: ReactNode
-  icon: ReactNode
-  active?: boolean
-}) {
-  return (
-    <div
-      className={
-        'mb-0.5 flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium transition ' +
-        (active
-          ? 'bg-[var(--sidebar-soft)] text-white'
-          : 'text-[var(--sidebar-muted)] hover:bg-[var(--sidebar-soft)] hover:text-white')
-      }
-    >
-      {icon}
-      {children}
     </div>
   )
 }
