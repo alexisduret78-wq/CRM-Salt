@@ -17,7 +17,7 @@ import {
   Bell,
 } from 'lucide-react'
 import { useEntreprises, useUpdateEntreprise } from '@/hooks/useEntreprises'
-import { estDansZone, scorerEntreprise, segmentDe, type ScoreDetail } from '@/lib/scoring'
+import { estDansZone, estDecouverte, scorerEntreprise, segmentDe, type ScoreDetail } from '@/lib/scoring'
 import { relanceInfo, totauxPotentiel, fmtCHFk, fmtDateCourt } from '@/lib/estimation'
 import type { EntrepriseAvecContacts } from '@/lib/database.types'
 import { TierBadge } from '@/components/badges'
@@ -64,8 +64,8 @@ export default function Prospection() {
 
   const scope = useMemo(() => {
     return scorees.filter(({ entreprise: e }) => {
-      if (source === 'claude' && e.origine !== 'claude') return false
-      if (source === 'fichiers' && e.origine === 'claude') return false
+      if (source === 'claude' && !estDecouverte(e)) return false
+      if (source === 'fichiers' && estDecouverte(e)) return false
       if (masquerClients && e.couleur === 'vert') return false
       if (zoneUniquement && !estDansZone(e)) return false
       return true
@@ -502,7 +502,7 @@ function Ligne({
       <Td>
         <div className="flex items-center gap-2">
           <span className="font-medium text-[var(--foreground)]">{e.nom}</span>
-          {e.origine === 'claude' && (
+          {estDecouverte(e) && (
             <span className="inline-flex items-center gap-0.5 rounded bg-violet-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-violet-300">
               <Sparkles className="h-2.5 w-2.5" /> Découverte
             </span>

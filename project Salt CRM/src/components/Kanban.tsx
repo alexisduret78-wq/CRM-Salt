@@ -13,6 +13,7 @@ import {
 import { MapPin, UserX, ShieldCheck, Sparkles, GripVertical, Bell } from 'lucide-react'
 import type { EntrepriseAvecContacts } from '@/lib/database.types'
 import type { ScoreDetail } from '@/lib/scoring'
+import { estDecouverte } from '@/lib/scoring'
 import { STAGES, stageDe, STAGE_COLUMN, type Stage } from '@/lib/pipeline'
 import {
   lignesEstimees,
@@ -224,7 +225,7 @@ function CarteContenu({
         <div className="min-w-0">
           <div className="flex items-center gap-1.5">
             <span className="truncate text-sm font-medium">{e.nom}</span>
-            {e.origine === 'claude' && (
+            {estDecouverte(e) && (
               <Sparkles className="h-3 w-3 shrink-0 text-[var(--color-salt)]" />
             )}
           </div>

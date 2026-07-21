@@ -181,6 +181,16 @@ export interface ScoreDetail {
 
 const clamp = (n: number, min = 0, max = 100) => Math.max(min, Math.min(max, n))
 
+// --- Découverte Claude ------------------------------------------------------
+// Une entreprise est une "découverte" si son origine est 'claude' OU si son
+// `source_fichier` commence par "Découverte Claude" (robustesse : certains
+// imports n'ont pas renseigné la colonne origine).
+export function estDecouverte(e: Entreprise): boolean {
+  if (e.origine === 'claude') return true
+  const sf = (e.source_fichier ?? '').toLowerCase()
+  return sf.includes('découverte claude') || sf.includes('decouverte claude')
+}
+
 // --- Segment / famille de découverte ---------------------------------------
 // Les découvertes Claude portent leur famille dans `source_fichier`
 // (ex. "Découverte Claude v4 — Pharma & Biotech"). On l'extrait pour filtrer.
@@ -189,7 +199,7 @@ export function segmentDe(e: Entreprise): string | null {
   // On sépare uniquement sur un tiret/point médian ENTOURÉ d'espaces
   // (sinon "sous-traitance" serait coupé sur son trait d'union interne).
   const m = sf.split(/\s+[—–·-]\s+/).map((s) => s.trim()).filter(Boolean)
-  if (e.origine === 'claude' && m.length > 1) {
+  if (estDecouverte(e) && m.length > 1) {
     const last = m[m.length - 1]
     // évite de retourner "v4" ou "Claude v4"
     if (last && !/^v?\d+$/i.test(last) && !/claude/i.test(last)) return last
