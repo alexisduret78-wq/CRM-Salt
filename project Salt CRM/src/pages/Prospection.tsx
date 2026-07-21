@@ -87,6 +87,17 @@ export default function Prospection() {
     return [...c].sort()
   }, [scope])
 
+  const compteSource = useMemo(() => {
+    const base = scorees.filter(({ entreprise: e }) => {
+      if (masquerClients && e.couleur === 'vert') return false
+      if (zoneUniquement && !estDansZone(e)) return false
+      return true
+    })
+    let claude = 0
+    for (const { entreprise: e } of base) if (estDecouverte(e)) claude++
+    return { claude, fichiers: base.length - claude, toutes: base.length }
+  }, [scorees, masquerClients, zoneUniquement])
+
   const kpis = useMemo(
     () => ({
       total: scope.length,
@@ -195,13 +206,28 @@ export default function Prospection() {
           {/* Source + vue */}
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-1.5">
-              <SourceTab active={source === 'claude'} onClick={() => setSource('claude')} icon={<Sparkles className="h-4 w-4" />}>
-                ✨ Découvertes
+              <SourceTab
+                active={source === 'claude'}
+                onClick={() => setSource('claude')}
+                icon={<Sparkles className="h-4 w-4" />}
+                count={compteSource.claude}
+              >
+                Découvertes
               </SourceTab>
-              <SourceTab active={source === 'fichiers'} onClick={() => setSource('fichiers')} icon={<FolderOpen className="h-4 w-4" />}>
-                📁 Mes fichiers
+              <SourceTab
+                active={source === 'fichiers'}
+                onClick={() => setSource('fichiers')}
+                icon={<FolderOpen className="h-4 w-4" />}
+                count={compteSource.fichiers}
+              >
+                Mes fichiers
               </SourceTab>
-              <SourceTab active={source === 'toutes'} onClick={() => setSource('toutes')} icon={<Layers className="h-4 w-4" />}>
+              <SourceTab
+                active={source === 'toutes'}
+                onClick={() => setSource('toutes')}
+                icon={<Layers className="h-4 w-4" />}
+                count={compteSource.toutes}
+              >
                 Toutes
               </SourceTab>
             </div>
@@ -660,11 +686,13 @@ function SourceTab({
   active,
   onClick,
   icon,
+  count,
 }: {
   children: React.ReactNode
   active: boolean
   onClick: () => void
   icon: React.ReactNode
+  count?: number
 }) {
   return (
     <button
@@ -678,6 +706,16 @@ function SourceTab({
     >
       {icon}
       {children}
+      {count != null && (
+        <span
+          className={
+            'rounded-full px-1.5 text-[11px] font-semibold tabular ' +
+            (active ? 'bg-black/15 text-[var(--color-salt-ink)]' : 'bg-white/8 text-[var(--muted-foreground)]')
+          }
+        >
+          {count}
+        </span>
+      )}
     </button>
   )
 }

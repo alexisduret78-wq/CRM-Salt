@@ -187,8 +187,13 @@ const clamp = (n: number, min = 0, max = 100) => Math.max(min, Math.min(max, n))
 // imports n'ont pas renseigné la colonne origine).
 export function estDecouverte(e: Entreprise): boolean {
   if (e.origine === 'claude') return true
-  const sf = (e.source_fichier ?? '').toLowerCase()
-  return sf.includes('découverte claude') || sf.includes('decouverte claude')
+  // Robustesse : certains imports n'ont pas renseigné `origine`. On reconnaît
+  // alors la découverte via ses autres marqueurs "Découverte Claude".
+  const hay = `${e.source_fichier ?? ''} ${e.statut_pamela_origine ?? ''} ${e.notes_consolidees ?? ''}`
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '') // enlève accents
+  return hay.includes('decouverte claude')
 }
 
 // --- Segment / famille de découverte ---------------------------------------

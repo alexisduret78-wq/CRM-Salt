@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { LogOut } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
-import { SaltLockup, SaltLogo } from '@/components/SaltLogo'
+import { SaltLogo } from '@/components/SaltLogo'
 
 export function Layout({ children }: { children: ReactNode }) {
   const { session, signOut } = useAuth()
@@ -9,52 +9,41 @@ export function Layout({ children }: { children: ReactNode }) {
   const initiales = email ? email.slice(0, 2).toUpperCase() : 'AD'
 
   return (
-    <div className="flex h-full bg-[var(--background)]">
-      {/* Rail latéral sombre */}
-      <aside className="hidden w-[236px] shrink-0 flex-col bg-[var(--sidebar)] text-[var(--sidebar-foreground)] md:flex">
-        <div className="px-5 py-5">
-          <SaltLockup size="md" subtitle="Prospection Business · Genève" />
+    <div className="flex h-full flex-col bg-[var(--background)]">
+      {/* Barre supérieure premium (pleine largeur, fond noir) */}
+      <header className="flex h-14 shrink-0 items-center justify-between border-b border-[var(--sidebar-border)] bg-[var(--sidebar)] px-4 sm:px-6">
+        <div className="flex items-center gap-2.5">
+          <SaltLogo className="h-6" />
+          <span className="rounded bg-[var(--color-salt)] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--color-salt-ink)]">
+            CRM
+          </span>
+          <span className="ml-1 hidden text-xs text-[var(--sidebar-muted)] sm:inline">
+            Prospection Business · Genève
+          </span>
         </div>
 
-        <div className="mt-auto border-t border-[var(--sidebar-border)] p-3">
-          <div className="flex items-center gap-2.5 rounded-lg px-2 py-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--sidebar-soft)] text-xs font-semibold">
+        <div className="flex items-center gap-3">
+          <div className="hidden items-center gap-2.5 sm:flex">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--sidebar-soft)] text-xs font-semibold text-[var(--sidebar-foreground)]">
               {initiales}
             </div>
-            <div className="min-w-0 flex-1 leading-tight">
-              <div className="truncate text-xs font-medium">{email || 'Compte'}</div>
-              <div className="text-[10px] text-[var(--sidebar-muted)]">Salt Business · Genève</div>
+            <div className="leading-tight">
+              <div className="text-xs font-medium text-[var(--sidebar-foreground)]">{email || 'Compte'}</div>
+              <div className="text-[10px] text-[var(--sidebar-muted)]">Salt Business</div>
             </div>
-            <button
-              onClick={() => signOut()}
-              title="Se déconnecter"
-              className="rounded-md p-1.5 text-[var(--sidebar-muted)] transition hover:bg-[var(--sidebar-soft)] hover:text-white"
-            >
-              <LogOut className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-      </aside>
-
-      {/* Barre mobile */}
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-between border-b bg-[var(--card)] px-4 py-2.5 md:hidden">
-          <div className="flex items-center gap-2">
-            <SaltLogo className="h-6" />
-            <span className="rounded bg-[var(--color-salt)] px-1 py-0.5 text-[9px] font-bold uppercase text-[var(--color-salt-ink)]">
-              CRM
-            </span>
           </div>
           <button
             onClick={() => signOut()}
-            className="rounded-md p-1.5 text-[var(--muted-foreground)] hover:bg-[var(--muted)]"
+            title="Se déconnecter"
+            className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-[var(--sidebar-muted)] transition hover:bg-[var(--sidebar-soft)] hover:text-white"
           >
             <LogOut className="h-4 w-4" />
+            <span className="hidden sm:inline">Sortir</span>
           </button>
-        </header>
+        </div>
+      </header>
 
-        <main className="min-h-0 flex-1 overflow-hidden">{children}</main>
-      </div>
+      <main className="min-h-0 flex-1 overflow-hidden">{children}</main>
     </div>
   )
 }
