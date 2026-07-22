@@ -189,38 +189,9 @@ export default function Prospection() {
   return (
     <div className="flex h-full">
       <div className="flex min-w-0 flex-1 flex-col">
-        {/* En-tête */}
-        <div className="border-b bg-[var(--card)] px-6 pt-5">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h1 className="flex items-center gap-2 text-lg font-semibold tracking-tight">
-                {source === 'claude' ? (
-                  <>
-                    <Sparkles className="h-5 w-5 text-[var(--color-salt)]" />
-                    Découvertes — nouvelles cibles
-                  </>
-                ) : source === 'fichiers' ? (
-                  <>
-                    <FolderOpen className="h-5 w-5" />
-                    Mes fichiers
-                  </>
-                ) : (
-                  'Prospection'
-                )}
-              </h1>
-              <p className="mt-0.5 text-sm text-[var(--muted-foreground)]">
-                {source === 'claude'
-                  ? 'Entreprises jamais contactées, ≥ 20 lignes mobiles potentielles, zone GE + La Côte.'
-                  : source === 'fichiers'
-                    ? 'Tes comptes déjà en portefeuille, reclassés par priorité.'
-                    : 'Toutes les cibles, classées par priorité de contact.'}
-              </p>
-            </div>
-            {!isLoading && scorees.length > 0 && <ImportBanner vide={false} />}
-          </div>
-
-          {/* Source + vue */}
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+        {/* En-tête compact : onglets + vue + import sur une ligne, KPI en puces */}
+        <div className="border-b bg-[var(--card)] px-6 pt-3 pb-2.5">
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
             <div className="flex flex-wrap items-center gap-1.5">
               <SourceTab
                 active={source === 'claude'}
@@ -248,47 +219,50 @@ export default function Prospection() {
               </SourceTab>
             </div>
 
-            <div className="inline-flex rounded-full border bg-[var(--card)] p-0.5">
-              <VueBtn active={vue === 'liste'} onClick={() => setVue('liste')} icon={<Rows3 className="h-4 w-4" />}>
-                Liste
-              </VueBtn>
-              <VueBtn active={vue === 'kanban'} onClick={() => setVue('kanban')} icon={<Columns3 className="h-4 w-4" />}>
-                Kanban
-              </VueBtn>
+            <div className="flex items-center gap-2">
+              <div className="inline-flex rounded-full border bg-[var(--card)] p-0.5">
+                <VueBtn active={vue === 'liste'} onClick={() => setVue('liste')} icon={<Rows3 className="h-4 w-4" />}>
+                  Liste
+                </VueBtn>
+                <VueBtn active={vue === 'kanban'} onClick={() => setVue('kanban')} icon={<Columns3 className="h-4 w-4" />}>
+                  Kanban
+                </VueBtn>
+              </div>
+              {!isLoading && scorees.length > 0 && <ImportBanner vide={false} />}
             </div>
           </div>
 
-          {/* KPI */}
-          <div className="mt-4 grid grid-cols-2 gap-3 pb-4 md:grid-cols-3 lg:grid-cols-5">
-            <Kpi label="Cibles en zone" value={kpis.total} icon={<Layers className="h-4 w-4" />} onClick={reset} />
-            <Kpi
-              label="Priorité A"
+          {/* KPI compacts (puces cliquables) */}
+          <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+            <KpiChip label="cibles en zone" value={kpis.total} icon={<Layers className="h-3.5 w-3.5" />} onClick={reset} />
+            <KpiChip
+              label="priorité A"
               value={kpis.prioA}
-              icon={<Flame className="h-4 w-4" />}
+              icon={<Flame className="h-3.5 w-3.5" />}
               tone="salt"
               active={tier === 'A'}
               onClick={() => setTier(tier === 'A' ? 'tous' : 'A')}
             />
-            <Kpi
-              label="À relancer"
+            <KpiChip
+              label="à relancer"
               value={kpis.aRelancer}
-              icon={<Bell className="h-4 w-4" />}
+              icon={<Bell className="h-3.5 w-3.5" />}
               tone="amber"
               active={relanceDue}
               onClick={() => setRelanceDue(!relanceDue)}
             />
-            <Kpi
-              label="Sans décideur"
+            <KpiChip
+              label="sans décideur"
               value={kpis.sansDecideur}
-              icon={<UserX className="h-4 w-4" />}
+              icon={<UserX className="h-3.5 w-3.5" />}
               tone="amber"
               active={sansDecideur}
               onClick={() => setSansDecideur(!sansDecideur)}
             />
-            <Kpi
+            <KpiChip
               label="Pamela à valider"
               value={kpis.pamelaAValider}
-              icon={<ShieldCheck className="h-4 w-4" />}
+              icon={<ShieldCheck className="h-3.5 w-3.5" />}
               tone="salt"
               active={pamela === 'non_valide'}
               onClick={() => setPamela(pamela === 'non_valide' ? 'tous' : 'non_valide')}
@@ -297,7 +271,7 @@ export default function Prospection() {
         </div>
 
         {/* Filtres */}
-        <div className="border-b bg-[var(--card)] px-6 py-3">
+        <div className="border-b bg-[var(--card)] px-6 py-2">
           <div className="flex flex-wrap items-center gap-2">
             <div className="relative">
               <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted-foreground)]" />
@@ -674,7 +648,9 @@ function PrioriteBar({ tier, score }: { tier: ScoreDetail['tier']; score: number
   )
 }
 
-function Kpi({
+// Puce KPI compacte et cliquable (filtre-raccourci) — remplace les grosses cartes
+// pour laisser la place à la liste d'entreprises.
+function KpiChip({
   label,
   value,
   icon,
@@ -689,29 +665,24 @@ function Kpi({
   active?: boolean
   tone?: 'neutral' | 'salt' | 'amber'
 }) {
-  const toneRing = {
-    neutral: 'ring-[var(--border-strong)]',
-    salt: 'ring-[color:rgba(30,215,96,0.6)]',
-    amber: 'ring-amber-400/60',
-  }[tone]
-  const iconTone = {
-    neutral: 'bg-white/5 text-[var(--muted-foreground)]',
-    salt: 'bg-[var(--salt-soft)] text-[var(--color-salt)]',
-    amber: 'bg-amber-400/10 text-amber-300',
+  const base =
+    'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition'
+  const cls = {
+    neutral: active
+      ? 'border-[var(--border-strong)] bg-[var(--muted)] text-[var(--foreground)]'
+      : 'border-[var(--border)] bg-[var(--background)] text-[var(--muted-foreground)] hover:border-[var(--border-strong)]',
+    salt: active
+      ? 'border-[color:rgba(30,215,96,0.5)] bg-[var(--salt-soft)] text-[var(--color-salt)]'
+      : 'border-[var(--border)] bg-[var(--background)] text-[var(--muted-foreground)] hover:border-[color:rgba(30,215,96,0.4)] hover:text-[var(--color-salt)]',
+    amber: active
+      ? 'border-amber-400/50 bg-amber-400/10 text-amber-300'
+      : 'border-[var(--border)] bg-[var(--background)] text-[var(--muted-foreground)] hover:border-amber-400/40 hover:text-amber-300',
   }[tone]
   return (
-    <button
-      onClick={onClick}
-      className={
-        'card-elevated flex items-center gap-3 px-4 py-3 text-left transition hover:border-[var(--border-strong)] ' +
-        (active ? `ring-2 ${toneRing}` : '')
-      }
-    >
-      <div className={'flex h-9 w-9 items-center justify-center rounded-lg ' + iconTone}>{icon}</div>
-      <div>
-        <div className="text-xl font-semibold leading-none tabular">{value}</div>
-        <div className="mt-1 text-[11px] font-medium text-[var(--muted-foreground)]">{label}</div>
-      </div>
+    <button onClick={onClick} className={base + ' ' + cls} title={label}>
+      {icon}
+      <span className="text-sm font-semibold leading-none tabular">{value}</span>
+      <span className="opacity-80">{label}</span>
     </button>
   )
 }
