@@ -16,6 +16,7 @@ import {
   Bell,
   Signal,
   Trash2,
+  Ban,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { EntrepriseAvecContacts } from '@/lib/database.types'
@@ -31,7 +32,7 @@ import {
   dansNJours,
 } from '@/lib/estimation'
 import { infererEmail } from '@/lib/email'
-import { useTogglePamela, useUpdateEntreprise, useDeleteEntreprises } from '@/hooks/useEntreprises'
+import { useUpdateEntreprise, useDeleteEntreprises } from '@/hooks/useEntreprises'
 import { CouleurBadge, TierBadge, UidBadge, SiegeBadge, FlotteBadge } from '@/components/badges'
 import { flotteInfo } from '@/lib/flotte'
 
@@ -44,7 +45,6 @@ export function EntrepriseDetail({
   score: ScoreDetail
   onClose: () => void
 }) {
-  const togglePamela = useTogglePamela()
   const update = useUpdateEntreprise()
   const supprimer = useDeleteEntreprises()
 
@@ -333,30 +333,45 @@ export function EntrepriseDetail({
             <p className="mb-2 text-[11px] leading-snug text-[var(--muted-foreground)]">
               Copie l'UID ci-dessus, recherche l'entreprise dans Pamela, puis marque le statut :
             </p>
-            <div className="flex items-center gap-2">
+            <div className="grid grid-cols-1 gap-1.5">
               <button
-                disabled={togglePamela.isPending}
-                onClick={() => togglePamela.mutate({ id: e.id, valide: true })}
+                disabled={update.isPending}
+                onClick={() => update.mutate({ id: e.id, patch: { pamela_valide: true, indisponible: false } })}
                 className={
-                  'flex-1 rounded-md border px-3 py-2 text-sm font-medium transition ' +
-                  (e.pamela_valide
+                  'flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium transition ' +
+                  (e.pamela_valide && !e.indisponible
                     ? 'border-[color:rgba(30,215,96,0.5)] bg-[var(--salt-soft)] text-[var(--color-salt)]'
                     : 'border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] hover:bg-[var(--muted)]')
                 }
               >
-                ✓ Validé
+                <ShieldCheck className="h-4 w-4" />
+                Validé — prête à prospecter
               </button>
               <button
-                disabled={togglePamela.isPending}
-                onClick={() => togglePamela.mutate({ id: e.id, valide: false })}
+                disabled={update.isPending}
+                onClick={() => update.mutate({ id: e.id, patch: { pamela_valide: false, indisponible: false } })}
                 className={
-                  'flex-1 rounded-md border px-3 py-2 text-sm font-medium transition ' +
-                  (!e.pamela_valide
+                  'flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium transition ' +
+                  (!e.pamela_valide && !e.indisponible
                     ? 'border-[var(--border-strong)] bg-[var(--muted)] text-[var(--foreground)]'
                     : 'border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] hover:bg-[var(--muted)]')
                 }
               >
-                Non validé
+                <RotateCcw className="h-4 w-4" />
+                À valider
+              </button>
+              <button
+                disabled={update.isPending}
+                onClick={() => update.mutate({ id: e.id, patch: { pamela_valide: false, indisponible: true } })}
+                className={
+                  'flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium transition ' +
+                  (e.indisponible
+                    ? 'border-red-500/50 bg-red-500/10 text-red-300'
+                    : 'border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] hover:bg-[var(--muted)]')
+                }
+              >
+                <Ban className="h-4 w-4" />
+                Indisponible — ne pas contacter
               </button>
             </div>
             {e.statut_pamela_origine && (

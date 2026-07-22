@@ -16,6 +16,7 @@ import {
   Bell,
   Trash2,
   Rocket,
+  Ban,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useEntreprises, useUpdateEntreprise, useDeleteEntreprises } from '@/hooks/useEntreprises'
@@ -29,7 +30,7 @@ import { EntrepriseDetail } from '@/components/EntrepriseDetail'
 import { ImportBanner } from '@/components/ImportBanner'
 
 type StatutFiltre = 'tous' | 'jamais' | 'ancien' | 'recent'
-type PamelaFiltre = 'tous' | 'valide' | 'non_valide'
+type PamelaFiltre = 'tous' | 'valide' | 'a_valider' | 'indispo'
 type SourceFiltre = 'toutes' | 'fichiers' | 'claude' | 'pretes'
 type TierFiltre = 'tous' | 'A' | 'B' | 'C'
 type FlotteFiltre = 'tous' | 'cible' | 'qualifier' | 'faible'
@@ -90,6 +91,9 @@ export default function Prospection() {
 
   const scope = useMemo(() => {
     return scorees.filter(({ entreprise: e }) => {
+      // « Indisponible » (on ne peut pas contacter) : mise de côté, exclue des
+      // listes de travail, visible seulement dans « Toutes ».
+      if (source !== 'toutes' && e.indisponible) return false
       // « Prêtes à prospecter » = validées Pamela. Une fois validées, elles
       // quittent Découvertes / Mes fichiers pour cette liste prioritaire.
       if (source === 'pretes' && !e.pamela_valide) return false
@@ -126,6 +130,7 @@ export default function Prospection() {
     let claude = 0
     let fichiers = 0
     for (const { entreprise: e } of base) {
+      if (e.indisponible) continue // mise de côté, hors listes de travail
       if (e.pamela_valide) pretes++
       else if (estDecouverte(e)) claude++
       else fichiers++
@@ -163,7 +168,8 @@ export default function Prospection() {
         if (flotte === 'faible' && v !== 'faible') return false
       }
       if (pamela === 'valide' && !e.pamela_valide) return false
-      if (pamela === 'non_valide' && e.pamela_valide) return false
+      if (pamela === 'a_valider' && (e.pamela_valide || e.indisponible)) return false
+      if (pamela === 'indispo' && !e.indisponible) return false
       if (q) {
         const seg = segmentDe(e) ?? ''
         const hay = `${e.nom} ${e.ville ?? ''} ${e.secteur ?? ''} ${seg}`.toLowerCase()
@@ -303,7 +309,7 @@ export default function Prospection() {
             <SideKpi label="Priorité A" value={kpis.prioA} icon={<Flame className="h-4 w-4" />} tone="salt" active={tier === 'A'} onClick={() => setTier(tier === 'A' ? 'tous' : 'A')} />
             <SideKpi label="À relancer" value={kpis.aRelancer} icon={<Bell className="h-4 w-4" />} tone="amber" active={relanceDue} onClick={() => setRelanceDue(!relanceDue)} />
             <SideKpi label="Sans décideur" value={kpis.sansDecideur} icon={<UserX className="h-4 w-4" />} tone="amber" active={sansDecideur} onClick={() => setSansDecideur(!sansDecideur)} />
-            <SideKpi label="Pamela à valider" value={kpis.pamelaAValider} icon={<ShieldCheck className="h-4 w-4" />} tone="salt" active={pamela === 'non_valide'} onClick={() => setPamela(pamela === 'non_valide' ? 'tous' : 'non_valide')} />
+            <SideKpi label="Pamela à valider" value={kpis.pamelaAValider} icon={<ShieldCheck className="h-4 w-4" />} tone="salt" active={pamela === 'a_valider'} onClick={() => setPamela(pamela === 'a_valider' ? 'tous' : 'a_valider')} />
           </div>
 
           {/* Filtres */}
@@ -361,7 +367,8 @@ export default function Prospection() {
             <Select className="w-full" value={pamela} onChange={(v) => setPamela(v as PamelaFiltre)} label="Pamela">
               <option value="tous">Pamela : tout</option>
               <option value="valide">Validé</option>
-              <option value="non_valide">À valider</option>
+              <option value="a_valider">À valider</option>
+              <option value="indispo">Indisponible</option>
             </Select>
 
             <label className="flex items-center gap-1.5 rounded-lg border bg-[var(--background)] px-2.5 py-2 text-sm text-[var(--muted-foreground)]">
@@ -619,18 +626,26 @@ function Ligne({
         <button
           onClick={(ev) => {
             ev.stopPropagation()
-            update.mutate({ id: e.id, patch: { pamela_valide: !e.pamela_valide } })
+            // Cycle : à valider → validé → indisponible → à valider
+            const patch = e.indisponible
+              ? { pamela_valide: false, indisponible: false }
+              : e.pamela_valide
+                ? { pamela_valide: false, indisponible: true }
+                : { pamela_valide: true, indisponible: false }
+            update.mutate({ id: e.id, patch })
           }}
           className={
             'inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-medium transition ' +
-            (e.pamela_valide
-              ? 'border-[color:rgba(30,215,96,0.4)] bg-[var(--salt-soft)] text-[var(--color-salt)] hover:bg-[var(--salt-soft-strong)]'
-              : 'border-[var(--border-strong)] bg-[var(--background)] text-[var(--muted-foreground)] hover:border-[color:rgba(30,215,96,0.4)] hover:text-[var(--color-salt)]')
+            (e.indisponible
+              ? 'border-red-500/40 bg-red-500/10 text-red-300 hover:bg-red-500/20'
+              : e.pamela_valide
+                ? 'border-[color:rgba(30,215,96,0.4)] bg-[var(--salt-soft)] text-[var(--color-salt)] hover:bg-[var(--salt-soft-strong)]'
+                : 'border-[var(--border-strong)] bg-[var(--background)] text-[var(--muted-foreground)] hover:border-[color:rgba(30,215,96,0.4)] hover:text-[var(--color-salt)]')
           }
-          title={e.pamela_valide ? 'Validé dans Pamela — cliquer pour retirer' : 'Marquer comme validé dans Pamela'}
+          title="Statut Pamela — cliquer pour changer (à valider → validé → indisponible)"
         >
-          <ShieldCheck className="h-3 w-3" />
-          {e.pamela_valide ? 'Validé' : 'À valider'}
+          {e.indisponible ? <Ban className="h-3 w-3" /> : <ShieldCheck className="h-3 w-3" />}
+          {e.indisponible ? 'Indispo' : e.pamela_valide ? 'Validé' : 'À valider'}
         </button>
       </Td>
     </tr>

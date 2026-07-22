@@ -52,6 +52,7 @@ type PatchEntreprise = Partial<
   Pick<
     Entreprise,
     | 'pamela_valide'
+    | 'indisponible'
     | 'date_dernier_contact'
     | 'date_prochaine_relance'
     | 'couleur'
