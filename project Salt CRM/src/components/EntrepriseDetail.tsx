@@ -31,7 +31,8 @@ import {
 } from '@/lib/estimation'
 import { infererEmail } from '@/lib/email'
 import { useTogglePamela, useUpdateEntreprise } from '@/hooks/useEntreprises'
-import { CouleurBadge, TierBadge, UidBadge, SiegeBadge } from '@/components/badges'
+import { CouleurBadge, TierBadge, UidBadge, SiegeBadge, FlotteBadge } from '@/components/badges'
+import { flotteInfo } from '@/lib/flotte'
 
 export function EntrepriseDetail({
   entreprise: e,
@@ -79,6 +80,7 @@ export function EntrepriseDetail({
               </span>
             )}
             <SiegeBadge uid={e.business_uid} />
+            <FlotteBadge entreprise={e} />
           </div>
         </div>
         <button
@@ -128,6 +130,12 @@ export function EntrepriseDetail({
             </div>
             <div className="mt-0.5 text-sm font-medium text-[var(--color-salt)] tabular">
               {fmtCHF(valeurAnnuelle(e))} / an potentiel
+            </div>
+            <div className="mt-2 flex items-center gap-2 border-t border-[color:rgba(30,215,96,0.2)] pt-2 text-[11px] text-[var(--muted-foreground)]">
+              <FlotteBadge entreprise={e} />
+              <span>
+                {flotteInfo(e).label} · taux d'équipement {Math.round(flotteInfo(e).taux * 100)}% du secteur
+              </span>
             </div>
           </section>
         )}

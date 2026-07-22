@@ -1,10 +1,41 @@
 import { useState } from 'react'
-import { Hash, Copy, Check, Building } from 'lucide-react'
+import { Hash, Copy, Check, Building, Signal } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
-import type { Couleur } from '@/lib/database.types'
+import type { Couleur, Entreprise } from '@/lib/database.types'
 import type { ScoreDetail } from '@/lib/scoring'
 import { raisonSiege } from '@/lib/siege'
+import { flotteInfo, type VerdictFlotte } from '@/lib/flotte'
+
+// Badge « potentiel flotte » : combien de lignes mobiles pro estimées, et si le
+// compte est dans la cible Salt (20+ lignes). Fondé sur effectif × taux secteur.
+const FLOTTE_STYLES: Record<VerdictFlotte, string> = {
+  fort: 'bg-[var(--salt-soft)] text-[var(--color-salt)] border-[color:rgba(30,215,96,0.35)]',
+  ok: 'bg-[var(--salt-soft)] text-[var(--color-salt)] border-[color:rgba(30,215,96,0.25)]',
+  qualifier: 'bg-amber-400/10 text-amber-300 border-amber-400/25',
+  faible: 'bg-red-500/10 text-red-300 border-red-500/25',
+  inconnu: 'bg-white/5 text-[var(--muted-foreground)] border-white/10',
+}
+
+export function FlotteBadge({ entreprise }: { entreprise: Entreprise }) {
+  const { verdict, lignes, taux, label } = flotteInfo(entreprise)
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[11px] font-semibold',
+        FLOTTE_STYLES[verdict]
+      )}
+      title={
+        verdict === 'inconnu'
+          ? 'Effectif inconnu — potentiel de flotte non estimable'
+          : `~${lignes} lignes mobiles estimées (taux d'équipement ${Math.round(taux * 100)}% du secteur) — ${label}`
+      }
+    >
+      <Signal className="h-2.5 w-2.5" />
+      {verdict === 'inconnu' ? 'Flotte ?' : `≈${lignes} l.`}
+    </span>
+  )
+}
 
 // Badge « siège hors Romandie » (décision télécom souvent centralisée hors GE/VD).
 export function SiegeBadge({ uid }: { uid: string | null }) {

@@ -2,22 +2,20 @@
 // Estimation de potentiel mobile + suivi de relance
 // =====================================================
 import type { Entreprise } from './database.types'
-import { niveauMobilite } from './scoring'
+import { tauxEquipement, lignesFlotte } from './flotte'
 
 // Hypothèse de prix moyen d'une ligne mobile business Salt (CHF/mois).
 // Ajustable si besoin.
 export const PRIX_LIGNE_MOIS = 35
 
-// Part estimée d'employés équipés d'une ligne mobile pro, selon la mobilité
-// du secteur (terrain = plus de lignes, bureau = moins).
+// Part estimée d'employés équipés d'une ligne mobile pro (taux d'équipement
+// par secteur — cf. flotte.ts, source unique de vérité).
 export function ratioMobile(e: Entreprise): number {
-  const m = niveauMobilite(e.secteur)
-  return m === 'fort' ? 0.5 : m === 'modere' ? 0.25 : 0.35
+  return tauxEquipement(e.secteur)
 }
 
 export function lignesEstimees(e: Entreprise): number {
-  if (e.taille_employes == null) return 0
-  return Math.max(0, Math.round(e.taille_employes * ratioMobile(e)))
+  return lignesFlotte(e)
 }
 
 export function valeurAnnuelle(e: Entreprise): number {

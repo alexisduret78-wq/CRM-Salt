@@ -32,7 +32,7 @@ import {
   totauxPotentiel,
 } from '@/lib/estimation'
 import { useUpdateEntreprise } from '@/hooks/useEntreprises'
-import { TierBadge, UidBadge, SiegeBadge } from '@/components/badges'
+import { TierBadge, UidBadge, SiegeBadge, FlotteBadge } from '@/components/badges'
 
 export interface Item {
   entreprise: EntrepriseAvecContacts
@@ -358,7 +358,10 @@ function CarteContenu({
       </div>
 
       <div className="mt-2.5 flex items-center justify-between gap-2">
-        <TierBadge tier={score.tier} score={score.score} />
+        <div className="flex items-center gap-1.5">
+          <TierBadge tier={score.tier} score={score.score} />
+          <FlotteBadge entreprise={e} />
+        </div>
         <span className="text-[11px] font-medium text-[var(--muted-foreground)] tabular">
           ≈ {lignes} lignes · <span className="text-[var(--color-salt)]">{fmtCHFk(valeurAnnuelle(e))}/an</span>
         </span>

@@ -20,8 +20,9 @@ import { useEntreprises, useUpdateEntreprise } from '@/hooks/useEntreprises'
 import { estDansZone, estDecouverte, scorerEntreprise, segmentDe, type ScoreDetail } from '@/lib/scoring'
 import { relanceInfo, totauxPotentiel, fmtCHFk, fmtDateCourt } from '@/lib/estimation'
 import { siegeHorsRomandie } from '@/lib/siege'
+import { flotteInfo } from '@/lib/flotte'
 import type { EntrepriseAvecContacts } from '@/lib/database.types'
-import { TierBadge, UidBadge, SiegeBadge } from '@/components/badges'
+import { TierBadge, UidBadge, SiegeBadge, FlotteBadge } from '@/components/badges'
 import { EntrepriseDetail } from '@/components/EntrepriseDetail'
 import { ImportBanner } from '@/components/ImportBanner'
 import { Kanban } from '@/components/Kanban'
@@ -30,6 +31,7 @@ type StatutFiltre = 'tous' | 'jamais' | 'ancien' | 'recent'
 type PamelaFiltre = 'tous' | 'valide' | 'non_valide'
 type SourceFiltre = 'toutes' | 'fichiers' | 'claude'
 type TierFiltre = 'tous' | 'A' | 'B' | 'C'
+type FlotteFiltre = 'tous' | 'cible' | 'qualifier' | 'faible'
 type Tri = 'priorite' | 'taille' | 'nom'
 type Vue = 'liste' | 'kanban'
 
@@ -53,6 +55,7 @@ export default function Prospection() {
   const [segment, setSegment] = useState<string>('tous')
   const [canton, setCanton] = useState<string>('tous')
   const [tier, setTier] = useState<TierFiltre>('tous')
+  const [flotte, setFlotte] = useState<FlotteFiltre>('tous')
   const [masquerClients, setMasquerClients] = useState(true)
   const [tri, setTri] = useState<Tri>('priorite')
   const [vue, setVue] = useState<Vue>('liste')
@@ -123,6 +126,12 @@ export default function Prospection() {
       if (sansDecideur && score.statutInterlocuteur !== 'aucun') return false
       if (relanceDue && relanceInfo(e).statut !== 'due') return false
       if (romandieStricte && siegeHorsRomandie(e.business_uid)) return false
+      if (flotte !== 'tous') {
+        const v = flotteInfo(e).verdict
+        if (flotte === 'cible' && !(v === 'fort' || v === 'ok')) return false
+        if (flotte === 'qualifier' && v !== 'qualifier') return false
+        if (flotte === 'faible' && v !== 'faible') return false
+      }
       if (pamela === 'valide' && !e.pamela_valide) return false
       if (pamela === 'non_valide' && e.pamela_valide) return false
       if (q) {
@@ -138,7 +147,7 @@ export default function Prospection() {
       if (tri === 'nom') return a.entreprise.nom.localeCompare(b.entreprise.nom, 'fr')
       return b.score.score - a.score.score
     })
-  }, [scope, recherche, segment, canton, tier, tailleMin, sansDecideur, relanceDue, romandieStricte, pamela, tri])
+  }, [scope, recherche, segment, canton, tier, flotte, tailleMin, sansDecideur, relanceDue, romandieStricte, pamela, tri])
 
   const potentiel = useMemo(() => totauxPotentiel(filtreesBase), [filtreesBase])
 
@@ -157,6 +166,7 @@ export default function Prospection() {
     (segment !== 'tous' ? 1 : 0) +
     (canton !== 'tous' ? 1 : 0) +
     (tier !== 'tous' ? 1 : 0) +
+    (flotte !== 'tous' ? 1 : 0) +
     (statut !== 'tous' ? 1 : 0) +
     (pamela !== 'tous' ? 1 : 0) +
     (sansDecideur ? 1 : 0) +
@@ -167,6 +177,7 @@ export default function Prospection() {
     setSegment('tous')
     setCanton('tous')
     setTier('tous')
+    setFlotte('tous')
     setStatut('tous')
     setPamela('tous')
     setSansDecideur(false)
@@ -373,6 +384,16 @@ export default function Prospection() {
                   { value: 'C', label: 'C' },
                 ]}
               />
+              <Segmented
+                value={flotte}
+                onChange={(v) => setFlotte(v as FlotteFiltre)}
+                options={[
+                  { value: 'tous', label: 'Flotte : tout' },
+                  { value: 'cible', label: 'Cible 20+' },
+                  { value: 'qualifier', label: 'À qualifier' },
+                  { value: 'faible', label: 'Faible' },
+                ]}
+              />
               {vue === 'liste' && (
                 <Segmented
                   value={statut}
@@ -575,7 +596,12 @@ function Ligne({
           </span>
         )}
       </Td>
-      <Td className="text-right tabular text-[var(--muted-foreground)]">{e.taille_employes ?? '—'}</Td>
+      <Td className="text-right">
+        <div className="flex flex-col items-end gap-1">
+          <span className="tabular text-[var(--muted-foreground)]">{e.taille_employes ?? '—'}</span>
+          <FlotteBadge entreprise={e} />
+        </div>
+      </Td>
       <Td className="hidden text-xs md:table-cell">
         {decideur ? (
           <div>
