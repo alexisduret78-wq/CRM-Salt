@@ -20,7 +20,7 @@ import { useEntreprises, useUpdateEntreprise } from '@/hooks/useEntreprises'
 import { estDansZone, estDecouverte, scorerEntreprise, segmentDe, type ScoreDetail } from '@/lib/scoring'
 import { relanceInfo, totauxPotentiel, fmtCHFk, fmtDateCourt } from '@/lib/estimation'
 import type { EntrepriseAvecContacts } from '@/lib/database.types'
-import { TierBadge } from '@/components/badges'
+import { TierBadge, UidBadge } from '@/components/badges'
 import { EntrepriseDetail } from '@/components/EntrepriseDetail'
 import { ImportBanner } from '@/components/ImportBanner'
 import { Kanban } from '@/components/Kanban'
@@ -541,7 +541,7 @@ function Ligne({
               {e.ville}
             </span>
           )}
-          {e.business_uid && <span className="tabular opacity-70">· {e.business_uid}</span>}
+          {e.business_uid && <UidBadge uid={e.business_uid} />}
           {rel.statut !== 'aucune' && rel.date && (
             <span
               className={

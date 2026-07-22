@@ -13,7 +13,6 @@ import {
   ShieldCheck,
   CalendarCheck,
   RotateCcw,
-  Hash,
   Bell,
   Signal,
 } from 'lucide-react'
@@ -32,7 +31,7 @@ import {
 } from '@/lib/estimation'
 import { infererEmail } from '@/lib/email'
 import { useTogglePamela, useUpdateEntreprise } from '@/hooks/useEntreprises'
-import { CouleurBadge, TierBadge } from '@/components/badges'
+import { CouleurBadge, TierBadge, UidBadge } from '@/components/badges'
 
 export function EntrepriseDetail({
   entreprise: e,
@@ -73,11 +72,7 @@ export function EntrepriseDetail({
                 <Users className="h-3 w-3" /> {e.taille_employes} empl.
               </span>
             )}
-            {e.business_uid && (
-              <span className="inline-flex items-center gap-1 tabular">
-                <Hash className="h-3 w-3" /> {e.business_uid}
-              </span>
-            )}
+            {e.business_uid && <UidBadge uid={e.business_uid} />}
             {seg && (
               <span className="rounded bg-[var(--muted)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--foreground)]">
                 {seg}
@@ -296,10 +291,16 @@ export function EntrepriseDetail({
 
           {/* Statut Pamela */}
           <div>
-            <div className="mb-1.5 flex items-center gap-1.5 text-xs text-[var(--muted-foreground)]">
-              <ShieldCheck className="h-3.5 w-3.5" />
-              Statut CRM interne (Pamela)
+            <div className="mb-1.5 flex items-center justify-between">
+              <span className="inline-flex items-center gap-1.5 text-xs text-[var(--muted-foreground)]">
+                <ShieldCheck className="h-3.5 w-3.5" />
+                Vérification Pamela (CRM interne)
+              </span>
+              {e.business_uid && <UidBadge uid={e.business_uid} />}
             </div>
+            <p className="mb-2 text-[11px] leading-snug text-[var(--muted-foreground)]">
+              Copie l'UID ci-dessus, recherche l'entreprise dans Pamela, puis marque le statut :
+            </p>
             <div className="flex items-center gap-2">
               <button
                 disabled={togglePamela.isPending}

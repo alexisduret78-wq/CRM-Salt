@@ -1,6 +1,40 @@
+import { useState } from 'react'
+import { Hash, Copy, Check } from 'lucide-react'
+import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import type { Couleur } from '@/lib/database.types'
 import type { ScoreDetail } from '@/lib/scoring'
+
+// UID entreprise (CHE-xxx) copiable en un clic — pour vérifier dans Pamela.
+export function UidBadge({ uid, className = '' }: { uid: string | null; className?: string }) {
+  const [copied, setCopied] = useState(false)
+  if (!uid) return null
+  return (
+    <button
+      onClick={(e) => {
+        e.stopPropagation()
+        navigator.clipboard.writeText(uid)
+        setCopied(true)
+        setTimeout(() => setCopied(false), 1200)
+        toast.success('UID copié — colle-le dans Pamela')
+      }}
+      title="Copier l'UID pour le rechercher dans Pamela"
+      className={cn(
+        'group/uid inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium tabular transition',
+        'bg-white/5 text-[var(--muted-foreground)] hover:bg-white/10 hover:text-[var(--foreground)]',
+        className
+      )}
+    >
+      <Hash className="h-2.5 w-2.5" />
+      {uid}
+      {copied ? (
+        <Check className="h-2.5 w-2.5 text-[var(--color-salt)]" />
+      ) : (
+        <Copy className="h-2.5 w-2.5 opacity-0 transition group-hover/uid:opacity-100" />
+      )}
+    </button>
+  )
+}
 
 const COULEUR_STYLES: Record<Couleur, { dot: string; label: string }> = {
   blanc: { dot: 'bg-neutral-300', label: 'Blanc' },

@@ -18,7 +18,6 @@ import {
   GripVertical,
   Bell,
   Layers,
-  ChevronRight,
 } from 'lucide-react'
 import type { EntrepriseAvecContacts } from '@/lib/database.types'
 import type { ScoreDetail } from '@/lib/scoring'
@@ -30,9 +29,10 @@ import {
   fmtCHFk,
   relanceInfo,
   fmtDateCourt,
+  totauxPotentiel,
 } from '@/lib/estimation'
 import { useUpdateEntreprise } from '@/hooks/useEntreprises'
-import { TierBadge } from '@/components/badges'
+import { TierBadge, UidBadge } from '@/components/badges'
 
 export interface Item {
   entreprise: EntrepriseAvecContacts
@@ -94,6 +94,7 @@ export function Kanban({
     return parStade[etape]
   }, [etape, items, parStade])
 
+  const pot = useMemo(() => totauxPotentiel(liste), [liste])
   const visibles = liste.slice(0, MAX_CARTES)
   const activeItem = activeId ? items.find((i) => i.entreprise.id === activeId) ?? null : null
 
@@ -151,7 +152,10 @@ export function Kanban({
               <span className="font-semibold">
                 {etape === 'toutes' ? 'Toutes les étapes' : STAGES.find((s) => s.key === etape)?.label}
               </span>
-              <span className="ml-2 text-xs text-[var(--muted-foreground)]">{liste.length} entreprise(s)</span>
+              <span className="ml-2 text-xs text-[var(--muted-foreground)] tabular">
+                {liste.length} entreprise(s) · ≈ {pot.lignes} lignes ·{' '}
+                <span className="text-[var(--color-salt)]">{fmtCHFk(pot.valeur)}/an</span>
+              </span>
             </div>
             <span className="hidden text-[11px] text-[var(--muted-foreground)] sm:inline">
               Glisse une carte vers une étape à gauche pour la déplacer
@@ -306,6 +310,7 @@ function CarteContenu({
   dragging?: boolean
   handle?: Record<string, unknown>
 }) {
+  const update = useUpdateEntreprise()
   const { entreprise: e, score } = item
   const decideur = e.contacts.find((c) => c.est_decideur)
   const lignes = lignesEstimees(e)
@@ -330,7 +335,7 @@ function CarteContenu({
             <span className="truncate text-sm font-semibold">{e.nom}</span>
             {estDecouverte(e) && <Sparkles className="h-3 w-3 shrink-0 text-[var(--color-salt)]" />}
           </div>
-          <div className="mt-0.5 flex items-center gap-1.5 pl-3.5 text-[11px] text-[var(--muted-foreground)]">
+          <div className="mt-0.5 flex flex-wrap items-center gap-1.5 pl-3.5 text-[11px] text-[var(--muted-foreground)]">
             {e.ville && (
               <span className="inline-flex items-center gap-0.5">
                 <MapPin className="h-2.5 w-2.5" />
@@ -338,6 +343,7 @@ function CarteContenu({
               </span>
             )}
             {e.taille_employes != null && <span className="tabular">· {e.taille_employes} empl.</span>}
+            {e.business_uid && <UidBadge uid={e.business_uid} />}
           </div>
         </div>
         <button
@@ -384,8 +390,22 @@ function CarteContenu({
               {rel.statut === 'due' ? 'relance' : fmtDateCourt(rel.date)}
             </span>
           )}
-          {e.pamela_valide && <ShieldCheck className="h-3 w-3 text-[var(--color-salt)]" />}
-          <ChevronRight className="h-3.5 w-3.5 text-[var(--muted-foreground)] opacity-0 transition group-hover:opacity-100" />
+          <button
+            onClick={(ev) => {
+              ev.stopPropagation()
+              update.mutate({ id: e.id, patch: { pamela_valide: !e.pamela_valide } })
+            }}
+            title={e.pamela_valide ? 'Pamela validé — cliquer pour retirer' : 'Marquer validé dans Pamela'}
+            className={
+              'inline-flex items-center gap-0.5 rounded px-1 py-0.5 text-[10px] font-medium transition ' +
+              (e.pamela_valide
+                ? 'bg-[var(--salt-soft)] text-[var(--color-salt)] hover:bg-[var(--salt-soft-strong)]'
+                : 'bg-white/5 text-[var(--muted-foreground)] hover:text-[var(--color-salt)]')
+            }
+          >
+            <ShieldCheck className="h-2.5 w-2.5" />
+            {e.pamela_valide ? 'Validé' : 'Pamela'}
+          </button>
         </div>
       </div>
     </div>
