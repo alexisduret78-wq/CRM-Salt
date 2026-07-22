@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   Search,
   MapPin,
@@ -55,8 +55,15 @@ export default function Prospection() {
   const [flotte, setFlotte] = useState<FlotteFiltre>('tous')
   const [masquerClients, setMasquerClients] = useState(true)
   const [tri, setTri] = useState<Tri>('priorite')
-  const [railOuvert, setRailOuvert] = useState(true)
+  const [railOuvert, setRailOuvert] = useState(
+    () => (typeof localStorage !== 'undefined' ? localStorage.getItem('salt-rail-ouvert') !== '0' : true)
+  )
   const [selection, setSelection] = useState<string | null>(null)
+
+  // Mémorise l'état du rail (ouvert/replié) d'une session à l'autre.
+  useEffect(() => {
+    localStorage.setItem('salt-rail-ouvert', railOuvert ? '1' : '0')
+  }, [railOuvert])
 
   const scorees = useMemo<EntrepriseScoree[]>(() => {
     if (!data) return []
