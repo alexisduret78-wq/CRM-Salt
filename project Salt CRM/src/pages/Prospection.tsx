@@ -14,8 +14,10 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Bell,
+  Trash2,
 } from 'lucide-react'
-import { useEntreprises, useUpdateEntreprise } from '@/hooks/useEntreprises'
+import { toast } from 'sonner'
+import { useEntreprises, useUpdateEntreprise, useDeleteEntreprises } from '@/hooks/useEntreprises'
 import { estDansZone, estDecouverte, scorerEntreprise, segmentDe, type ScoreDetail } from '@/lib/scoring'
 import { relanceInfo, totauxPotentiel, fmtCHFk, fmtDateCourt } from '@/lib/estimation'
 import { siegeHorsRomandie } from '@/lib/siege'
@@ -64,6 +66,21 @@ export default function Prospection() {
   useEffect(() => {
     localStorage.setItem('salt-rail-ouvert', railOuvert ? '1' : '0')
   }, [railOuvert])
+
+  const supprimerLot = useDeleteEntreprises()
+  const idsHorsRomandie = useMemo(
+    () => (data ?? []).filter((e) => siegeHorsRomandie(e.business_uid)).map((e) => e.id),
+    [data]
+  )
+  function onSupprimerHorsRomandie() {
+    const n = idsHorsRomandie.length
+    if (n === 0) return
+    if (!window.confirm(`Supprimer définitivement les ${n} entreprises dont le siège légal est hors Suisse romande (et leurs décideurs) ?`)) return
+    supprimerLot.mutate(idsHorsRomandie, {
+      onSuccess: (nb) => toast.success(`${nb} entreprise(s) « hors Romandie » supprimée(s)`),
+      onError: (err) => toast.error((err as Error).message),
+    })
+  }
 
   const scorees = useMemo<EntrepriseScoree[]>(() => {
     if (!data) return []
@@ -345,6 +362,18 @@ export default function Prospection() {
                 Masquer clients
               </Toggle>
             </div>
+
+            {idsHorsRomandie.length > 0 && (
+              <button
+                onClick={onSupprimerHorsRomandie}
+                disabled={supprimerLot.isPending}
+                title="Supprimer définitivement les entreprises dont le siège légal est hors Suisse romande"
+                className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-red-500/30 bg-red-500/10 px-2.5 py-2 text-xs font-medium text-red-300 transition hover:bg-red-500/20 disabled:opacity-50"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Supprimer les {idsHorsRomandie.length} hors Romandie
+              </button>
+            )}
           </div>
         </div>
 

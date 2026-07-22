@@ -15,6 +15,7 @@ import {
   RotateCcw,
   Bell,
   Signal,
+  Trash2,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { EntrepriseAvecContacts } from '@/lib/database.types'
@@ -30,7 +31,7 @@ import {
   dansNJours,
 } from '@/lib/estimation'
 import { infererEmail } from '@/lib/email'
-import { useTogglePamela, useUpdateEntreprise } from '@/hooks/useEntreprises'
+import { useTogglePamela, useUpdateEntreprise, useDeleteEntreprises } from '@/hooks/useEntreprises'
 import { CouleurBadge, TierBadge, UidBadge, SiegeBadge, FlotteBadge } from '@/components/badges'
 import { flotteInfo } from '@/lib/flotte'
 
@@ -45,6 +46,18 @@ export function EntrepriseDetail({
 }) {
   const togglePamela = useTogglePamela()
   const update = useUpdateEntreprise()
+  const supprimer = useDeleteEntreprises()
+
+  function onSupprimer() {
+    if (!window.confirm(`Supprimer définitivement « ${e.nom} » et ses décideurs ?`)) return
+    supprimer.mutate([e.id], {
+      onSuccess: () => {
+        toast.success(`« ${e.nom} » supprimée`)
+        onClose()
+      },
+      onError: (err) => toast.error((err as Error).message),
+    })
+  }
   const decideurs = e.contacts.filter((c) => c.est_decideur)
   const autres = e.contacts.filter((c) => !c.est_decideur)
   const jours = joursDepuisDernierContact(e.date_dernier_contact)
@@ -83,12 +96,22 @@ export function EntrepriseDetail({
             <FlotteBadge entreprise={e} />
           </div>
         </div>
-        <button
-          onClick={onClose}
-          className="rounded-md p-1 text-[var(--muted-foreground)] transition hover:bg-[var(--muted)]"
-        >
-          <X className="h-4 w-4" />
-        </button>
+        <div className="flex items-center gap-0.5">
+          <button
+            onClick={onSupprimer}
+            disabled={supprimer.isPending}
+            title="Supprimer cette entreprise"
+            className="rounded-md p-1 text-[var(--muted-foreground)] transition hover:bg-red-500/10 hover:text-red-400 disabled:opacity-50"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+          <button
+            onClick={onClose}
+            className="rounded-md p-1 text-[var(--muted-foreground)] transition hover:bg-[var(--muted)]"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
       <div className="min-h-0 flex-1 space-y-5 overflow-auto px-5 py-4">

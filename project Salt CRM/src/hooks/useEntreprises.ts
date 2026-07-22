@@ -85,6 +85,42 @@ export function useUpdateEntreprise() {
   })
 }
 
+// Suppression (une ou plusieurs entreprises) — supprime d'abord les décideurs
+// liés, puis les entreprises. MAJ optimiste : disparaissent tout de suite.
+export function useDeleteEntreprises() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (ids: string[]) => {
+      if (ids.length === 0) return 0
+      const { error: ce } = await supabase.from('contacts').delete().in('entreprise_id', ids)
+      if (ce) throw ce
+      const { error, count } = await supabase
+        .from('entreprises')
+        .delete({ count: 'exact' })
+        .in('id', ids)
+      if (error) throw error
+      // count 0 alors qu'on visait des lignes → probablement la policy RLS DELETE manquante.
+      if (!count) throw new Error('Suppression bloquée : ajoute une policy RLS DELETE sur Supabase.')
+      return count
+    },
+    onMutate: async (ids: string[]) => {
+      await qc.cancelQueries({ queryKey: ['entreprises'] })
+      const prev = qc.getQueryData<EntrepriseAvecContacts[]>(['entreprises'])
+      const set = new Set(ids)
+      qc.setQueryData<EntrepriseAvecContacts[]>(['entreprises'], (old) =>
+        (old ?? []).filter((e) => !set.has(e.id))
+      )
+      return { prev }
+    },
+    onError: (_err, _ids, ctx) => {
+      if (ctx?.prev) qc.setQueryData(['entreprises'], ctx.prev)
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['entreprises'] })
+    },
+  })
+}
+
 // Raccourci historique : bascule le statut Pamela (validé / non validé).
 export function useTogglePamela() {
   const update = useUpdateEntreprise()
