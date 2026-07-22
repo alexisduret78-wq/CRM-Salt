@@ -11,8 +11,8 @@ import {
   UserX,
   Flame,
   X,
-  Rows3,
-  Columns3,
+  PanelLeftClose,
+  PanelLeftOpen,
   Bell,
 } from 'lucide-react'
 import { useEntreprises, useUpdateEntreprise } from '@/hooks/useEntreprises'
@@ -24,7 +24,6 @@ import type { EntrepriseAvecContacts } from '@/lib/database.types'
 import { TierBadge, UidBadge, SiegeBadge, FlotteBadge } from '@/components/badges'
 import { EntrepriseDetail } from '@/components/EntrepriseDetail'
 import { ImportBanner } from '@/components/ImportBanner'
-import { Kanban } from '@/components/Kanban'
 
 type StatutFiltre = 'tous' | 'jamais' | 'ancien' | 'recent'
 type PamelaFiltre = 'tous' | 'valide' | 'non_valide'
@@ -32,7 +31,6 @@ type SourceFiltre = 'toutes' | 'fichiers' | 'claude'
 type TierFiltre = 'tous' | 'A' | 'B' | 'C'
 type FlotteFiltre = 'tous' | 'cible' | 'qualifier' | 'faible'
 type Tri = 'priorite' | 'taille' | 'nom'
-type Vue = 'liste' | 'kanban'
 
 export interface EntrepriseScoree {
   entreprise: EntrepriseAvecContacts
@@ -57,7 +55,7 @@ export default function Prospection() {
   const [flotte, setFlotte] = useState<FlotteFiltre>('tous')
   const [masquerClients, setMasquerClients] = useState(true)
   const [tri, setTri] = useState<Tri>('priorite')
-  const [vue, setVue] = useState<Vue>('liste')
+  const [railOuvert, setRailOuvert] = useState(true)
   const [selection, setSelection] = useState<string | null>(null)
 
   const scorees = useMemo<EntrepriseScoree[]>(() => {
@@ -184,30 +182,24 @@ export default function Prospection() {
     setRecherche('')
   }
 
-  const nbAffichees = vue === 'kanban' ? filtreesBase.length : filtreesListe.length
+  const nbAffichees = filtreesListe.length
 
   return (
     <div className="flex h-full">
-      {/* Rail latéral : tous les contrôles — la liste occupe toute la hauteur à droite */}
+      {/* Rail latéral repliable : tous les contrôles — la liste occupe toute la hauteur à droite */}
+      {railOuvert && (
       <aside className="flex w-64 shrink-0 flex-col border-r bg-[var(--card)]">
         <div className="flex-1 space-y-4 overflow-y-auto p-3">
-          {/* Vue */}
-          <div className="grid grid-cols-2 gap-1 rounded-full border bg-[var(--background)] p-0.5">
-            {(['liste', 'kanban'] as Vue[]).map((v) => (
-              <button
-                key={v}
-                onClick={() => setVue(v)}
-                className={
-                  'inline-flex items-center justify-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition ' +
-                  (vue === v
-                    ? 'bg-[var(--foreground)] text-[var(--background)]'
-                    : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]')
-                }
-              >
-                {v === 'liste' ? <Rows3 className="h-4 w-4" /> : <Columns3 className="h-4 w-4" />}
-                {v === 'liste' ? 'Liste' : 'Kanban'}
-              </button>
-            ))}
+          {/* En-tête du rail : titre + repli */}
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-semibold tracking-tight">Filtres &amp; vues</span>
+            <button
+              onClick={() => setRailOuvert(false)}
+              title="Replier le panneau"
+              className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-[var(--border)] text-[var(--muted-foreground)] transition hover:border-[var(--border-strong)] hover:text-[var(--foreground)]"
+            >
+              <PanelLeftClose className="h-4 w-4" />
+            </button>
           </div>
 
           {/* Recherche */}
@@ -304,14 +296,12 @@ export default function Prospection() {
               <option value="B">Priorité B</option>
               <option value="C">Priorité C</option>
             </Select>
-            {vue === 'liste' && (
-              <Select className="w-full" value={statut} onChange={(v) => setStatut(v as StatutFiltre)} label="Contact">
-                <option value="tous">Contact : tout</option>
-                <option value="jamais">Jamais contactée</option>
-                <option value="ancien">Contact ancien</option>
-                <option value="recent">Contact récent</option>
-              </Select>
-            )}
+            <Select className="w-full" value={statut} onChange={(v) => setStatut(v as StatutFiltre)} label="Contact">
+              <option value="tous">Contact : tout</option>
+              <option value="jamais">Jamais contactée</option>
+              <option value="ancien">Contact ancien</option>
+              <option value="recent">Contact récent</option>
+            </Select>
             <Select className="w-full" value={pamela} onChange={(v) => setPamela(v as PamelaFiltre)} label="Pamela">
               <option value="tous">Pamela : tout</option>
               <option value="valide">Validé</option>
@@ -358,17 +348,34 @@ export default function Prospection() {
           </div>
         )}
       </aside>
+      )}
 
-      {/* Colonne principale : barre fine + liste/kanban pleine hauteur */}
+      {/* Colonne principale : barre fine + liste pleine hauteur */}
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex items-center justify-between gap-3 border-b bg-[var(--card)] px-6 py-2.5">
           <div className="flex flex-wrap items-center gap-x-2 text-xs text-[var(--muted-foreground)]">
+            {!railOuvert && (
+              <button
+                onClick={() => setRailOuvert(true)}
+                title="Afficher les filtres"
+                className={
+                  'relative inline-flex h-7 w-7 items-center justify-center rounded-lg border transition ' +
+                  (nbFiltresActifs > 0
+                    ? 'border-[color:rgba(30,215,96,0.4)] bg-[var(--salt-soft)] text-[var(--color-salt)]'
+                    : 'border-[var(--border)] text-[var(--muted-foreground)] hover:border-[var(--border-strong)] hover:text-[var(--foreground)]')
+                }
+              >
+                <PanelLeftOpen className="h-4 w-4" />
+                {nbFiltresActifs > 0 && (
+                  <span className="absolute -right-1 -top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-[var(--color-salt)] px-1 text-[9px] font-bold text-[var(--color-salt-ink)]">
+                    {nbFiltresActifs}
+                  </span>
+                )}
+              </button>
+            )}
             <span className="text-sm font-semibold text-[var(--foreground)]">
               {isLoading ? 'Chargement…' : `${nbAffichees} entreprise${nbAffichees > 1 ? 's' : ''}`}
             </span>
-            {!isLoading && vue === 'kanban' && (
-              <span className="hidden sm:inline">· glisse les cartes pour faire avancer le pipeline</span>
-            )}
             {!isLoading && potentiel.lignes > 0 && (
               <span className="tabular">
                 · potentiel ≈ {potentiel.lignes} lignes ·{' '}
@@ -398,11 +405,7 @@ export default function Prospection() {
             </div>
           )}
 
-          {!isLoading && !error && scorees.length > 0 && vue === 'kanban' && (
-            <Kanban items={filtreesBase} selection={selection} onSelect={setSelection} />
-          )}
-
-          {!isLoading && !error && scorees.length > 0 && vue === 'liste' && (
+          {!isLoading && !error && scorees.length > 0 && (
             <div className="h-full overflow-auto">
               {filtreesListe.length === 0 ? (
                 <EmptyState onReset={reset} showReset={nbFiltresActifs > 0} />
