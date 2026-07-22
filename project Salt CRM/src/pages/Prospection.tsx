@@ -15,6 +15,7 @@ import {
   PanelLeftOpen,
   Bell,
   Trash2,
+  Rocket,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useEntreprises, useUpdateEntreprise, useDeleteEntreprises } from '@/hooks/useEntreprises'
@@ -29,7 +30,7 @@ import { ImportBanner } from '@/components/ImportBanner'
 
 type StatutFiltre = 'tous' | 'jamais' | 'ancien' | 'recent'
 type PamelaFiltre = 'tous' | 'valide' | 'non_valide'
-type SourceFiltre = 'toutes' | 'fichiers' | 'claude'
+type SourceFiltre = 'toutes' | 'fichiers' | 'claude' | 'pretes'
 type TierFiltre = 'tous' | 'A' | 'B' | 'C'
 type FlotteFiltre = 'tous' | 'cible' | 'qualifier' | 'faible'
 type Tri = 'priorite' | 'taille' | 'nom'
@@ -89,8 +90,11 @@ export default function Prospection() {
 
   const scope = useMemo(() => {
     return scorees.filter(({ entreprise: e }) => {
-      if (source === 'claude' && !estDecouverte(e)) return false
-      if (source === 'fichiers' && estDecouverte(e)) return false
+      // « Prêtes à prospecter » = validées Pamela. Une fois validées, elles
+      // quittent Découvertes / Mes fichiers pour cette liste prioritaire.
+      if (source === 'pretes' && !e.pamela_valide) return false
+      if (source === 'claude' && (!estDecouverte(e) || e.pamela_valide)) return false
+      if (source === 'fichiers' && (estDecouverte(e) || e.pamela_valide)) return false
       if (masquerClients && e.couleur === 'vert') return false
       if (zoneUniquement && !estDansZone(e)) return false
       return true
@@ -118,9 +122,15 @@ export default function Prospection() {
       if (zoneUniquement && !estDansZone(e)) return false
       return true
     })
+    let pretes = 0
     let claude = 0
-    for (const { entreprise: e } of base) if (estDecouverte(e)) claude++
-    return { claude, fichiers: base.length - claude, toutes: base.length }
+    let fichiers = 0
+    for (const { entreprise: e } of base) {
+      if (e.pamela_valide) pretes++
+      else if (estDecouverte(e)) claude++
+      else fichiers++
+    }
+    return { pretes, claude, fichiers, toutes: base.length }
   }, [scorees, masquerClients, zoneUniquement])
 
   const kpis = useMemo(
@@ -237,9 +247,31 @@ export default function Prospection() {
             />
           </div>
 
+          {/* Prêtes à prospecter — liste prioritaire (validées Pamela) */}
+          <button
+            onClick={() => setSource('pretes')}
+            className={
+              'flex w-full items-center gap-2 rounded-lg border px-2.5 py-2.5 text-sm font-semibold transition ' +
+              (source === 'pretes'
+                ? 'border-[color:rgba(30,215,96,0.6)] bg-[var(--color-salt)] text-[var(--color-salt-ink)]'
+                : 'border-[color:rgba(30,215,96,0.4)] bg-[var(--salt-soft)] text-[var(--color-salt)] hover:bg-[var(--salt-soft-strong)]')
+            }
+          >
+            <Rocket className="h-4 w-4" />
+            <span className="flex-1 text-left">Prêtes à prospecter</span>
+            <span
+              className={
+                'rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular ' +
+                (source === 'pretes' ? 'bg-black/15' : 'bg-[var(--color-salt)] text-[var(--color-salt-ink)]')
+              }
+            >
+              {compteSource.pretes}
+            </span>
+          </button>
+
           {/* Source */}
           <div className="space-y-1.5">
-            <SideLabel>Source</SideLabel>
+            <SideLabel>À qualifier</SideLabel>
             {(
               [
                 { key: 'claude', label: 'Découvertes', icon: <Sparkles className="h-4 w-4" />, count: compteSource.claude },
