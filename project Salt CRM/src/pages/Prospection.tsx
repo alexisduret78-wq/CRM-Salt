@@ -11,7 +11,6 @@ import {
   UserX,
   Flame,
   X,
-  SlidersHorizontal,
   Rows3,
   Columns3,
   Bell,
@@ -59,7 +58,6 @@ export default function Prospection() {
   const [masquerClients, setMasquerClients] = useState(true)
   const [tri, setTri] = useState<Tri>('priorite')
   const [vue, setVue] = useState<Vue>('liste')
-  const [plusDeFiltres, setPlusDeFiltres] = useState(false)
   const [selection, setSelection] = useState<string | null>(null)
 
   const scorees = useMemo<EntrepriseScoree[]>(() => {
@@ -186,105 +184,96 @@ export default function Prospection() {
     setRecherche('')
   }
 
+  const nbAffichees = vue === 'kanban' ? filtreesBase.length : filtreesListe.length
+
   return (
     <div className="flex h-full">
-      <div className="flex min-w-0 flex-1 flex-col">
-        {/* En-tête compact : onglets + vue + import sur une ligne, KPI en puces */}
-        <div className="border-b bg-[var(--card)] px-6 pt-3 pb-2.5">
-          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-            <div className="flex flex-wrap items-center gap-1.5">
-              <SourceTab
-                active={source === 'claude'}
-                onClick={() => setSource('claude')}
-                icon={<Sparkles className="h-4 w-4" />}
-                count={compteSource.claude}
+      {/* Rail latéral : tous les contrôles — la liste occupe toute la hauteur à droite */}
+      <aside className="flex w-64 shrink-0 flex-col border-r bg-[var(--card)]">
+        <div className="flex-1 space-y-4 overflow-y-auto p-3">
+          {/* Vue */}
+          <div className="grid grid-cols-2 gap-1 rounded-full border bg-[var(--background)] p-0.5">
+            {(['liste', 'kanban'] as Vue[]).map((v) => (
+              <button
+                key={v}
+                onClick={() => setVue(v)}
+                className={
+                  'inline-flex items-center justify-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition ' +
+                  (vue === v
+                    ? 'bg-[var(--foreground)] text-[var(--background)]'
+                    : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]')
+                }
               >
-                Découvertes
-              </SourceTab>
-              <SourceTab
-                active={source === 'fichiers'}
-                onClick={() => setSource('fichiers')}
-                icon={<FolderOpen className="h-4 w-4" />}
-                count={compteSource.fichiers}
-              >
-                Mes fichiers
-              </SourceTab>
-              <SourceTab
-                active={source === 'toutes'}
-                onClick={() => setSource('toutes')}
-                icon={<Layers className="h-4 w-4" />}
-                count={compteSource.toutes}
-              >
-                Toutes
-              </SourceTab>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <div className="inline-flex rounded-full border bg-[var(--card)] p-0.5">
-                <VueBtn active={vue === 'liste'} onClick={() => setVue('liste')} icon={<Rows3 className="h-4 w-4" />}>
-                  Liste
-                </VueBtn>
-                <VueBtn active={vue === 'kanban'} onClick={() => setVue('kanban')} icon={<Columns3 className="h-4 w-4" />}>
-                  Kanban
-                </VueBtn>
-              </div>
-              {!isLoading && scorees.length > 0 && <ImportBanner vide={false} />}
-            </div>
+                {v === 'liste' ? <Rows3 className="h-4 w-4" /> : <Columns3 className="h-4 w-4" />}
+                {v === 'liste' ? 'Liste' : 'Kanban'}
+              </button>
+            ))}
           </div>
 
-          {/* KPI compacts (puces cliquables) */}
-          <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-            <KpiChip label="cibles en zone" value={kpis.total} icon={<Layers className="h-3.5 w-3.5" />} onClick={reset} />
-            <KpiChip
-              label="priorité A"
-              value={kpis.prioA}
-              icon={<Flame className="h-3.5 w-3.5" />}
-              tone="salt"
-              active={tier === 'A'}
-              onClick={() => setTier(tier === 'A' ? 'tous' : 'A')}
-            />
-            <KpiChip
-              label="à relancer"
-              value={kpis.aRelancer}
-              icon={<Bell className="h-3.5 w-3.5" />}
-              tone="amber"
-              active={relanceDue}
-              onClick={() => setRelanceDue(!relanceDue)}
-            />
-            <KpiChip
-              label="sans décideur"
-              value={kpis.sansDecideur}
-              icon={<UserX className="h-3.5 w-3.5" />}
-              tone="amber"
-              active={sansDecideur}
-              onClick={() => setSansDecideur(!sansDecideur)}
-            />
-            <KpiChip
-              label="Pamela à valider"
-              value={kpis.pamelaAValider}
-              icon={<ShieldCheck className="h-3.5 w-3.5" />}
-              tone="salt"
-              active={pamela === 'non_valide'}
-              onClick={() => setPamela(pamela === 'non_valide' ? 'tous' : 'non_valide')}
+          {/* Recherche */}
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted-foreground)]" />
+            <input
+              value={recherche}
+              onChange={(e) => setRecherche(e.target.value)}
+              placeholder="Rechercher…"
+              className="w-full rounded-lg border bg-[var(--background)] py-2 pl-8 pr-3 text-sm outline-none transition placeholder:text-[var(--muted-foreground)] focus:border-[var(--color-salt)] focus:ring-2 focus:ring-[color:var(--salt-soft-strong)]"
             />
           </div>
-        </div>
 
-        {/* Filtres */}
-        <div className="border-b bg-[var(--card)] px-6 py-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted-foreground)]" />
-              <input
-                value={recherche}
-                onChange={(e) => setRecherche(e.target.value)}
-                placeholder="Rechercher nom, ville, secteur, segment…"
-                className="w-72 rounded-lg border bg-[var(--background)] py-2 pl-8 pr-3 text-sm outline-none transition placeholder:text-[var(--muted-foreground)] focus:border-[var(--color-salt)] focus:ring-2 focus:ring-[color:var(--salt-soft-strong)]"
-              />
+          {/* Source */}
+          <div className="space-y-1.5">
+            <SideLabel>Source</SideLabel>
+            {(
+              [
+                { key: 'claude', label: 'Découvertes', icon: <Sparkles className="h-4 w-4" />, count: compteSource.claude },
+                { key: 'fichiers', label: 'Mes fichiers', icon: <FolderOpen className="h-4 w-4" />, count: compteSource.fichiers },
+                { key: 'toutes', label: 'Toutes', icon: <Layers className="h-4 w-4" />, count: compteSource.toutes },
+              ] as { key: SourceFiltre; label: string; icon: React.ReactNode; count: number }[]
+            ).map((s) => (
+              <button
+                key={s.key}
+                onClick={() => setSource(s.key)}
+                className={
+                  'flex w-full items-center gap-2 rounded-lg border px-2.5 py-2 text-sm font-medium transition ' +
+                  (source === s.key
+                    ? 'border-[color:rgba(30,215,96,0.4)] bg-[var(--salt-soft)] text-[var(--color-salt)]'
+                    : 'border-[var(--border)] bg-[var(--background)] text-[var(--muted-foreground)] hover:border-[var(--border-strong)]')
+                }
+              >
+                {s.icon}
+                <span className="flex-1 text-left">{s.label}</span>
+                <span className="rounded-full bg-white/8 px-1.5 py-0.5 text-[10px] font-semibold tabular">{s.count}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Raccourcis (KPI cliquables) */}
+          <div className="space-y-1.5">
+            <SideLabel>Raccourcis</SideLabel>
+            <SideKpi label="Cibles en zone" value={kpis.total} icon={<Layers className="h-4 w-4" />} onClick={reset} />
+            <SideKpi label="Priorité A" value={kpis.prioA} icon={<Flame className="h-4 w-4" />} tone="salt" active={tier === 'A'} onClick={() => setTier(tier === 'A' ? 'tous' : 'A')} />
+            <SideKpi label="À relancer" value={kpis.aRelancer} icon={<Bell className="h-4 w-4" />} tone="amber" active={relanceDue} onClick={() => setRelanceDue(!relanceDue)} />
+            <SideKpi label="Sans décideur" value={kpis.sansDecideur} icon={<UserX className="h-4 w-4" />} tone="amber" active={sansDecideur} onClick={() => setSansDecideur(!sansDecideur)} />
+            <SideKpi label="Pamela à valider" value={kpis.pamelaAValider} icon={<ShieldCheck className="h-4 w-4" />} tone="salt" active={pamela === 'non_valide'} onClick={() => setPamela(pamela === 'non_valide' ? 'tous' : 'non_valide')} />
+          </div>
+
+          {/* Filtres */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <SideLabel>Filtres</SideLabel>
+              {nbFiltresActifs > 0 && (
+                <button
+                  onClick={reset}
+                  className="inline-flex items-center gap-1 text-[11px] font-medium text-[var(--muted-foreground)] hover:text-[var(--color-salt)]"
+                >
+                  <X className="h-3 w-3" /> Réinitialiser
+                </button>
+              )}
             </div>
 
             {segments.length > 0 && (
-              <Select value={segment} onChange={setSegment} label="Segment">
+              <Select className="w-full" value={segment} onChange={setSegment} label="Segment">
                 <option value="tous">Tous les segments</option>
                 {segments.map((s) => (
                   <option key={s} value={s}>
@@ -293,9 +282,8 @@ export default function Prospection() {
                 ))}
               </Select>
             )}
-
             {cantons.length > 1 && (
-              <Select value={canton} onChange={setCanton} label="Canton">
+              <Select className="w-full" value={canton} onChange={setCanton} label="Canton">
                 <option value="tous">GE + VD (Côte)</option>
                 {cantons.map((c) => (
                   <option key={c} value={c}>
@@ -304,9 +292,34 @@ export default function Prospection() {
                 ))}
               </Select>
             )}
+            <Select className="w-full" value={flotte} onChange={(v) => setFlotte(v as FlotteFiltre)} label="Potentiel flotte">
+              <option value="tous">Flotte : toutes</option>
+              <option value="cible">Cible 20+ lignes</option>
+              <option value="qualifier">À qualifier</option>
+              <option value="faible">Faible</option>
+            </Select>
+            <Select className="w-full" value={tier} onChange={(v) => setTier(v as TierFiltre)} label="Priorité">
+              <option value="tous">Priorité : toutes</option>
+              <option value="A">Priorité A</option>
+              <option value="B">Priorité B</option>
+              <option value="C">Priorité C</option>
+            </Select>
+            {vue === 'liste' && (
+              <Select className="w-full" value={statut} onChange={(v) => setStatut(v as StatutFiltre)} label="Contact">
+                <option value="tous">Contact : tout</option>
+                <option value="jamais">Jamais contactée</option>
+                <option value="ancien">Contact ancien</option>
+                <option value="recent">Contact récent</option>
+              </Select>
+            )}
+            <Select className="w-full" value={pamela} onChange={(v) => setPamela(v as PamelaFiltre)} label="Pamela">
+              <option value="tous">Pamela : tout</option>
+              <option value="valide">Validé</option>
+              <option value="non_valide">À valider</option>
+            </Select>
 
-            <label className="inline-flex items-center gap-1.5 rounded-lg border bg-[var(--background)] px-2.5 py-1.5 text-sm text-[var(--muted-foreground)]">
-              <Users className="h-4 w-4" />≥
+            <label className="flex items-center gap-1.5 rounded-lg border bg-[var(--background)] px-2.5 py-2 text-sm text-[var(--muted-foreground)]">
+              <Users className="h-4 w-4" /> ≥
               <input
                 type="number"
                 value={tailleMin}
@@ -315,80 +328,10 @@ export default function Prospection() {
                 onChange={(e) => setTailleMin(Number(e.target.value) || 0)}
                 className="w-14 bg-transparent text-sm text-[var(--foreground)] outline-none tabular"
               />
-              empl.
+              employés
             </label>
 
-            <button
-              type="button"
-              onClick={() => setPlusDeFiltres((v) => !v)}
-              className={
-                'inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-2 text-sm font-medium transition ' +
-                (plusDeFiltres || nbFiltresActifs > 0
-                  ? 'border-[color:rgba(30,215,96,0.4)] bg-[var(--salt-soft)] text-[var(--color-salt)]'
-                  : 'bg-[var(--background)] text-[var(--muted-foreground)] hover:bg-[var(--muted)]')
-              }
-            >
-              <SlidersHorizontal className="h-4 w-4" />
-              Filtres
-              {nbFiltresActifs > 0 && (
-                <span className="rounded-full bg-[var(--color-salt)] px-1.5 text-[10px] font-bold text-[var(--color-salt-ink)]">
-                  {nbFiltresActifs}
-                </span>
-              )}
-            </button>
-
-            <div className="ml-auto">
-              <Select value={tri} onChange={(v) => setTri(v as Tri)} label="Trier">
-                <option value="priorite">Priorité ↓</option>
-                <option value="taille">Effectif ↓</option>
-                <option value="nom">Nom A→Z</option>
-              </Select>
-            </div>
-          </div>
-
-          {plusDeFiltres && (
-            <div className="mt-3 flex flex-wrap items-center gap-2 border-t pt-3 animate-fadein">
-              <Segmented
-                value={tier}
-                onChange={(v) => setTier(v as TierFiltre)}
-                options={[
-                  { value: 'tous', label: 'Toutes prio' },
-                  { value: 'A', label: 'A' },
-                  { value: 'B', label: 'B' },
-                  { value: 'C', label: 'C' },
-                ]}
-              />
-              <Segmented
-                value={flotte}
-                onChange={(v) => setFlotte(v as FlotteFiltre)}
-                options={[
-                  { value: 'tous', label: 'Flotte : tout' },
-                  { value: 'cible', label: 'Cible 20+' },
-                  { value: 'qualifier', label: 'À qualifier' },
-                  { value: 'faible', label: 'Faible' },
-                ]}
-              />
-              {vue === 'liste' && (
-                <Segmented
-                  value={statut}
-                  onChange={(v) => setStatut(v as StatutFiltre)}
-                  options={[
-                    { value: 'tous', label: 'Tout contact' },
-                    { value: 'jamais', label: 'Jamais contactée' },
-                    { value: 'ancien', label: 'Contact ancien' },
-                    { value: 'recent', label: 'Contact récent' },
-                  ]}
-                />
-              )}
-              <Segmented
-                value={pamela}
-                onChange={(v) => setPamela(v as PamelaFiltre)}
-                options={[
-                  { value: 'tous', label: 'Pamela : tout' },
-                  { value: 'valide', label: 'Validé' },
-                  { value: 'non_valide', label: 'À valider' },
-                ]}
-              />
+            <div className="flex flex-wrap gap-1.5 pt-0.5">
               <Toggle checked={sansDecideur} onChange={setSansDecideur}>
                 Sans décideur
               </Toggle>
@@ -404,34 +347,40 @@ export default function Prospection() {
               <Toggle checked={masquerClients} onChange={setMasquerClients}>
                 Masquer clients
               </Toggle>
-              {nbFiltresActifs > 0 && (
-                <button
-                  onClick={reset}
-                  className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-medium text-[var(--muted-foreground)] hover:text-[var(--color-salt)]"
-                >
-                  <X className="h-3.5 w-3.5" /> Réinitialiser
-                </button>
-              )}
             </div>
-          )}
+          </div>
+        </div>
 
-          <div className="mt-2 flex flex-wrap items-center gap-x-2 text-xs text-[var(--muted-foreground)]">
-            <span>
-              {isLoading
-                ? 'Chargement…'
-                : vue === 'kanban'
-                  ? `${filtreesBase.length} entreprise(s) · glisse les cartes pour faire avancer le pipeline`
-                  : `${filtreesListe.length} entreprise(s) · triées par ${triLabel(tri)}`}
+        {/* Import collé en bas du rail */}
+        {!isLoading && scorees.length > 0 && (
+          <div className="border-t border-[var(--border)] p-3">
+            <ImportBanner vide={false} />
+          </div>
+        )}
+      </aside>
+
+      {/* Colonne principale : barre fine + liste/kanban pleine hauteur */}
+      <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex items-center justify-between gap-3 border-b bg-[var(--card)] px-6 py-2.5">
+          <div className="flex flex-wrap items-center gap-x-2 text-xs text-[var(--muted-foreground)]">
+            <span className="text-sm font-semibold text-[var(--foreground)]">
+              {isLoading ? 'Chargement…' : `${nbAffichees} entreprise${nbAffichees > 1 ? 's' : ''}`}
             </span>
+            {!isLoading && vue === 'kanban' && (
+              <span className="hidden sm:inline">· glisse les cartes pour faire avancer le pipeline</span>
+            )}
             {!isLoading && potentiel.lignes > 0 && (
               <span className="tabular">
                 · potentiel ≈ {potentiel.lignes} lignes ·{' '}
-                <span className="font-medium text-[var(--color-salt)]">
-                  {fmtCHFk(potentiel.valeur)}/an
-                </span>
+                <span className="font-medium text-[var(--color-salt)]">{fmtCHFk(potentiel.valeur)}/an</span>
               </span>
             )}
           </div>
+          <Select value={tri} onChange={(v) => setTri(v as Tri)} label="Trier">
+            <option value="priorite">Priorité ↓</option>
+            <option value="taille">Effectif ↓</option>
+            <option value="nom">Nom A→Z</option>
+          </Select>
         </div>
 
         {/* Contenu */}
@@ -648,9 +597,17 @@ function PrioriteBar({ tier, score }: { tier: ScoreDetail['tier']; score: number
   )
 }
 
-// Puce KPI compacte et cliquable (filtre-raccourci) — remplace les grosses cartes
-// pour laisser la place à la liste d'entreprises.
-function KpiChip({
+// Intitulé de section du rail latéral.
+function SideLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="px-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
+      {children}
+    </div>
+  )
+}
+
+// Raccourci KPI plein-largeur (rail latéral) : libellé + valeur, cliquable = filtre.
+function SideKpi({
   label,
   value,
   icon,
@@ -665,8 +622,6 @@ function KpiChip({
   active?: boolean
   tone?: 'neutral' | 'salt' | 'amber'
 }) {
-  const base =
-    'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition'
   const cls = {
     neutral: active
       ? 'border-[var(--border-strong)] bg-[var(--muted)] text-[var(--foreground)]'
@@ -679,74 +634,13 @@ function KpiChip({
       : 'border-[var(--border)] bg-[var(--background)] text-[var(--muted-foreground)] hover:border-amber-400/40 hover:text-amber-300',
   }[tone]
   return (
-    <button onClick={onClick} className={base + ' ' + cls} title={label}>
+    <button
+      onClick={onClick}
+      className={'flex w-full items-center gap-2 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition ' + cls}
+    >
       {icon}
+      <span className="flex-1 text-left">{label}</span>
       <span className="text-sm font-semibold leading-none tabular">{value}</span>
-      <span className="opacity-80">{label}</span>
-    </button>
-  )
-}
-
-function SourceTab({
-  children,
-  active,
-  onClick,
-  icon,
-  count,
-}: {
-  children: React.ReactNode
-  active: boolean
-  onClick: () => void
-  icon: React.ReactNode
-  count?: number
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={
-        'inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium transition ' +
-        (active
-          ? 'bg-[var(--color-salt)] text-[var(--color-salt-ink)]'
-          : 'text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]')
-      }
-    >
-      {icon}
-      {children}
-      {count != null && (
-        <span
-          className={
-            'rounded-full px-1.5 text-[11px] font-semibold tabular ' +
-            (active ? 'bg-black/15 text-[var(--color-salt-ink)]' : 'bg-white/8 text-[var(--muted-foreground)]')
-          }
-        >
-          {count}
-        </span>
-      )}
-    </button>
-  )
-}
-
-function VueBtn({
-  children,
-  active,
-  onClick,
-  icon,
-}: {
-  children: React.ReactNode
-  active: boolean
-  onClick: () => void
-  icon: React.ReactNode
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={
-        'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition ' +
-        (active ? 'bg-[var(--foreground)] text-[var(--background)]' : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]')
-      }
-    >
-      {icon}
-      {children}
     </button>
   )
 }
@@ -756,18 +650,23 @@ function Select({
   onChange,
   children,
   label,
+  className = '',
 }: {
   value: string
   onChange: (v: string) => void
   children: React.ReactNode
   label?: string
+  className?: string
 }) {
   return (
     <select
       aria-label={label}
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="rounded-lg border bg-[var(--background)] px-2.5 py-2 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--color-salt)]"
+      className={
+        'rounded-lg border bg-[var(--background)] px-2.5 py-2 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--color-salt)] ' +
+        className
+      }
     >
       {children}
     </select>
@@ -802,36 +701,6 @@ function Toggle({
   )
 }
 
-function Segmented({
-  value,
-  onChange,
-  options,
-}: {
-  value: string
-  onChange: (v: string) => void
-  options: { value: string; label: string }[]
-}) {
-  return (
-    <div className="inline-flex rounded-lg border bg-[var(--background)] p-0.5">
-      {options.map((o) => (
-        <button
-          key={o.value}
-          type="button"
-          onClick={() => onChange(o.value)}
-          className={
-            'rounded-md px-2.5 py-1 text-xs font-medium transition ' +
-            (value === o.value
-              ? 'bg-[var(--color-salt)] text-[var(--color-salt-ink)]'
-              : 'text-[var(--muted-foreground)] hover:bg-[var(--muted)]')
-          }
-        >
-          {o.label}
-        </button>
-      ))}
-    </div>
-  )
-}
-
 function Th({ children, className = '' }: { children?: React.ReactNode; className?: string }) {
   return (
     <th className={'border-b bg-[var(--card)] px-3 py-2.5 font-medium ' + className}>{children}</th>
@@ -846,6 +715,3 @@ function Td({ children, className = '' }: { children?: React.ReactNode; classNam
   )
 }
 
-function triLabel(t: Tri): string {
-  return t === 'taille' ? 'effectif' : t === 'nom' ? 'nom' : 'priorité de contact'
-}
