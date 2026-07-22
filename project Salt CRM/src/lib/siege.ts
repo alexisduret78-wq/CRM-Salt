@@ -1,34 +1,24 @@
 // =====================================================
-// Sièges hors Suisse romande (vérifié au registre du commerce)
+// Sièges légaux hors Suisse romande (lecture stricte RC)
 // =====================================================
-// Découvertes dont le SIÈGE légal OU le centre de décision (maison-mère) est
-// en Suisse alémanique ou à l'étranger → la décision télécom est souvent
-// centralisée hors GE/VD. Vérifié via zefix / moneyhouse (juillet 2026).
-// Clé = business_uid (CHE-…). Valeur = raison courte (tooltip).
+// Lecture STRICTE du registre du commerce : on regarde uniquement le SIÈGE
+// LÉGAL de l'entité (ou, pour une succursale, l'établissement principal).
+// On NE tient PAS compte des holdings / maisons-mères : une société
+// immatriculée en GE/VD reste romande même si son groupe est ailleurs.
+// Vérifié via zefix / moneyhouse (juillet 2026). Clé = business_uid.
 
 export const SIEGE_HORS_ROMANDIE: Record<string, string> = {
-  'CHE-103.572.747': 'Holding Amstein+Walthert à Zurich',
-  'CHE-430.311.292': 'Succursale · siège Ittigen BE (groupe VINCI)',
-  'CHE-177.099.873': 'Succursale · siège Rotkreuz ZG (Bechtle, DE)',
-  'CHE-221.403.244': 'Succursale · siège Zurich (Bouygues/Equans, FR)',
-  'CHE-248.948.364': 'Groupe Colas / Bouygues (France)',
-  'CHE-108.487.149': 'Maison-mère Galliker à Altishofen LU',
-  'CHE-105.991.440': 'Holding CH à Adliswil ZH (Generali, Italie)',
-  'CHE-104.823.975': 'Georg Fischer, Schaffhouse SH',
-  'CHE-105.839.536': 'Siège Zurich (Globus / Central Group)',
-  'CHE-103.612.849': 'Siège Hünenberg ZG (TX Group)',
-  'CHE-116.173.397': 'Groupe Hirslanden, Opfikon ZH',
-  'CHE-101.433.081': 'Groupe Hirslanden, Opfikon ZH',
-  'CHE-317.735.749': 'Succursale · siège Dietikon ZH (Planzer)',
-  'CHE-248.068.730': 'Siège Muri BE (groupe emeis, FR)',
-  'CHE-430.232.729': 'Groupe Sword (Luxembourg)',
-  'CHE-356.549.498': 'Siège Zurich (Vebego, NL)',
-  'CHE-317.931.925': 'Succursale · siège Cadempino TI (Bracco, Milan)',
-  'CHE-398.161.059': 'Siège CH à Zurich (BDO)',
-  'CHE-153.284.948': 'Succursale · siège Zurich (Grant Thornton)',
-  'CHE-106.576.084': 'Groupe PROMAN (France)',
-  'CHE-261.918.282': 'Groupe CRIT (France)',
-  'CHE-106.034.966': 'TX Group, Zurich (Tamedia)',
+  'CHE-430.311.292': 'Succursale · siège légal Ittigen BE (Axians)',
+  'CHE-177.099.873': 'Succursale · siège légal Rotkreuz ZG (Bechtle)',
+  'CHE-221.403.244': 'Succursale · siège légal Zurich (Bouygues/Equans)',
+  'CHE-105.839.536': 'Siège légal Zurich (Magazine zum Globus AG)',
+  'CHE-103.612.849': 'Siège légal Hünenberg ZG (Goldbach Neo)',
+  'CHE-317.735.749': 'Succursale · siège légal Dietikon ZH (Planzer)',
+  'CHE-248.068.730': 'Succursale · siège légal Muri BE (Senevita)',
+  'CHE-356.549.498': 'Succursale · siège légal Zurich (Vebego)',
+  'CHE-317.931.925': 'Succursale · siège légal Cadempino TI (Bracco)',
+  'CHE-398.161.059': 'Siège légal Zurich (BDO SA)',
+  'CHE-153.284.948': 'Succursale · siège légal Zurich (Grant Thornton)',
 }
 
 export function siegeHorsRomandie(uid: string | null): boolean {

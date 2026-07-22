@@ -13,10 +13,10 @@ export function SiegeBadge({ uid }: { uid: string | null }) {
   return (
     <span
       className="inline-flex items-center gap-1 rounded bg-amber-400/12 px-1.5 py-0.5 text-[10px] font-semibold text-amber-300"
-      title={`Siège / décision hors Suisse romande — ${raison}`}
+      title={`Siège légal hors Suisse romande (lecture RC) — ${raison}`}
     >
       <Building className="h-2.5 w-2.5" />
-      Groupe national
+      Siège hors Romandie
     </span>
   )
 }
