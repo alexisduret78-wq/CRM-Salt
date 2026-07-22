@@ -31,7 +31,7 @@ import {
 } from '@/lib/estimation'
 import { infererEmail } from '@/lib/email'
 import { useTogglePamela, useUpdateEntreprise } from '@/hooks/useEntreprises'
-import { CouleurBadge, TierBadge, UidBadge } from '@/components/badges'
+import { CouleurBadge, TierBadge, UidBadge, SiegeBadge } from '@/components/badges'
 
 export function EntrepriseDetail({
   entreprise: e,
@@ -78,6 +78,7 @@ export function EntrepriseDetail({
                 {seg}
               </span>
             )}
+            <SiegeBadge uid={e.business_uid} />
           </div>
         </div>
         <button

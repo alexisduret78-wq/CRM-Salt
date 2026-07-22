@@ -32,7 +32,7 @@ import {
   totauxPotentiel,
 } from '@/lib/estimation'
 import { useUpdateEntreprise } from '@/hooks/useEntreprises'
-import { TierBadge, UidBadge } from '@/components/badges'
+import { TierBadge, UidBadge, SiegeBadge } from '@/components/badges'
 
 export interface Item {
   entreprise: EntrepriseAvecContacts
@@ -344,6 +344,7 @@ function CarteContenu({
             )}
             {e.taille_employes != null && <span className="tabular">· {e.taille_employes} empl.</span>}
             {e.business_uid && <UidBadge uid={e.business_uid} />}
+            <SiegeBadge uid={e.business_uid} />
           </div>
         </div>
         <button

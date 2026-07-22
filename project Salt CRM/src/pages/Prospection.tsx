@@ -19,8 +19,9 @@ import {
 import { useEntreprises, useUpdateEntreprise } from '@/hooks/useEntreprises'
 import { estDansZone, estDecouverte, scorerEntreprise, segmentDe, type ScoreDetail } from '@/lib/scoring'
 import { relanceInfo, totauxPotentiel, fmtCHFk, fmtDateCourt } from '@/lib/estimation'
+import { siegeHorsRomandie } from '@/lib/siege'
 import type { EntrepriseAvecContacts } from '@/lib/database.types'
-import { TierBadge, UidBadge } from '@/components/badges'
+import { TierBadge, UidBadge, SiegeBadge } from '@/components/badges'
 import { EntrepriseDetail } from '@/components/EntrepriseDetail'
 import { ImportBanner } from '@/components/ImportBanner'
 import { Kanban } from '@/components/Kanban'
@@ -46,6 +47,7 @@ export default function Prospection() {
   const [statut, setStatut] = useState<StatutFiltre>('tous')
   const [sansDecideur, setSansDecideur] = useState(false)
   const [relanceDue, setRelanceDue] = useState(false)
+  const [romandieStricte, setRomandieStricte] = useState(false)
   const [pamela, setPamela] = useState<PamelaFiltre>('tous')
   const [source, setSource] = useState<SourceFiltre>('claude')
   const [segment, setSegment] = useState<string>('tous')
@@ -120,6 +122,7 @@ export default function Prospection() {
       if (e.taille_employes == null && tailleMin > 50) return false
       if (sansDecideur && score.statutInterlocuteur !== 'aucun') return false
       if (relanceDue && relanceInfo(e).statut !== 'due') return false
+      if (romandieStricte && siegeHorsRomandie(e.business_uid)) return false
       if (pamela === 'valide' && !e.pamela_valide) return false
       if (pamela === 'non_valide' && e.pamela_valide) return false
       if (q) {
@@ -135,7 +138,7 @@ export default function Prospection() {
       if (tri === 'nom') return a.entreprise.nom.localeCompare(b.entreprise.nom, 'fr')
       return b.score.score - a.score.score
     })
-  }, [scope, recherche, segment, canton, tier, tailleMin, sansDecideur, relanceDue, pamela, tri])
+  }, [scope, recherche, segment, canton, tier, tailleMin, sansDecideur, relanceDue, romandieStricte, pamela, tri])
 
   const potentiel = useMemo(() => totauxPotentiel(filtreesBase), [filtreesBase])
 
@@ -157,7 +160,8 @@ export default function Prospection() {
     (statut !== 'tous' ? 1 : 0) +
     (pamela !== 'tous' ? 1 : 0) +
     (sansDecideur ? 1 : 0) +
-    (relanceDue ? 1 : 0)
+    (relanceDue ? 1 : 0) +
+    (romandieStricte ? 1 : 0)
 
   function reset() {
     setSegment('tous')
@@ -167,6 +171,7 @@ export default function Prospection() {
     setPamela('tous')
     setSansDecideur(false)
     setRelanceDue(false)
+    setRomandieStricte(false)
     setRecherche('')
   }
 
@@ -395,6 +400,9 @@ export default function Prospection() {
               <Toggle checked={relanceDue} onChange={setRelanceDue} icon={<Bell className="h-3.5 w-3.5" />}>
                 À relancer
               </Toggle>
+              <Toggle checked={romandieStricte} onChange={setRomandieStricte}>
+                Siège Romandie (RC)
+              </Toggle>
               <Toggle checked={zoneUniquement} onChange={setZoneUniquement} icon={<MapPin className="h-3.5 w-3.5" />}>
                 Zone GE + Côte
               </Toggle>
@@ -533,6 +541,7 @@ function Ligne({
               <Sparkles className="h-2.5 w-2.5" /> Découverte
             </span>
           )}
+          <SiegeBadge uid={e.business_uid} />
         </div>
         <div className="mt-0.5 flex items-center gap-1.5 text-xs text-[var(--muted-foreground)]">
           {e.ville && (

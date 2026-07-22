@@ -1,9 +1,25 @@
 import { useState } from 'react'
-import { Hash, Copy, Check } from 'lucide-react'
+import { Hash, Copy, Check, Building } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import type { Couleur } from '@/lib/database.types'
 import type { ScoreDetail } from '@/lib/scoring'
+import { raisonSiege } from '@/lib/siege'
+
+// Badge « siège hors Romandie » (décision télécom souvent centralisée hors GE/VD).
+export function SiegeBadge({ uid }: { uid: string | null }) {
+  const raison = raisonSiege(uid)
+  if (!raison) return null
+  return (
+    <span
+      className="inline-flex items-center gap-1 rounded bg-amber-400/12 px-1.5 py-0.5 text-[10px] font-semibold text-amber-300"
+      title={`Siège / décision hors Suisse romande — ${raison}`}
+    >
+      <Building className="h-2.5 w-2.5" />
+      Groupe national
+    </span>
+  )
+}
 
 // UID entreprise (CHE-xxx) copiable en un clic — pour vérifier dans Pamela.
 export function UidBadge({ uid, className = '' }: { uid: string | null; className?: string }) {
