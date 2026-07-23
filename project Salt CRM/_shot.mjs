@@ -2,7 +2,7 @@ import { chromium } from 'playwright'
 import { readFileSync } from 'fs'
 const P='/tmp/claude-0/-home-user-CRM-Salt/c53d90d3-c893-553a-a5aa-87e909d1ff50/scratchpad/'
 const master = JSON.parse(readFileSync(P+'decouvertes_MASTER_import.json','utf8'))
-const ents = master.entreprises.map((e,i) => ({...e, adresse:null, pamela_valide:false, indisponible: i<3, date_dernier_contact:null, date_prochaine_relance:null, priorite:null }))
+const ents = master.entreprises.map((e) => ({...e, adresse:null, pamela_valide:false, indisponible:false, date_dernier_contact:null, date_prochaine_relance:null, priorite:null }))
 const browser = await chromium.launch({ executablePath:'/opt/pw-browsers/chromium' })
 const page = await browser.newPage({ viewport:{ width:1440, height:820 } })
 await page.route('**/*', (route) => {
@@ -21,8 +21,7 @@ await page.addInitScript(() => {
 })
 await page.goto('http://localhost:5190/', { waitUntil:'domcontentloaded' })
 await page.waitForTimeout(3500)
-await page.click('text=Invalides')
-await page.waitForTimeout(500)
-await page.screenshot({ path:P+'invalides.png' })
-console.log('count:', (await page.textContent('body')).match(/(\d+) entreprise/)?.[0])
+await page.click('table tbody tr:first-child')
+await page.waitForTimeout(700)
+await page.screenshot({ path:P+'pamela_top.png' })
 await browser.close()

@@ -115,6 +115,64 @@ export function EntrepriseDetail({
       </div>
 
       <div className="min-h-0 flex-1 space-y-5 overflow-auto px-5 py-4">
+        {/* Statut Pamela — action principale, en haut de la fiche */}
+        <section className="rounded-xl border border-[var(--border-strong)] bg-[var(--card-2)] p-3">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--foreground)]">
+              <ShieldCheck className="h-3.5 w-3.5" /> Statut Pamela
+            </span>
+            {e.business_uid && <UidBadge uid={e.business_uid} />}
+          </div>
+          <div className="grid grid-cols-3 gap-1.5">
+            <button
+              disabled={update.isPending}
+              onClick={() => update.mutate({ id: e.id, patch: { pamela_valide: true, indisponible: false } })}
+              className={
+                'flex flex-col items-center gap-1 rounded-lg border px-2 py-2.5 text-xs font-semibold transition ' +
+                (e.pamela_valide && !e.indisponible
+                  ? 'border-[color:rgba(30,215,96,0.6)] bg-[var(--color-salt)] text-[var(--color-salt-ink)] shadow-[0_0_0_1px_rgba(30,215,96,0.3)]'
+                  : 'border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] hover:border-[color:rgba(30,215,96,0.4)] hover:text-[var(--color-salt)]')
+              }
+            >
+              <ShieldCheck className="h-4 w-4" />
+              Validé
+            </button>
+            <button
+              disabled={update.isPending}
+              onClick={() => update.mutate({ id: e.id, patch: { pamela_valide: false, indisponible: false } })}
+              className={
+                'flex flex-col items-center gap-1 rounded-lg border px-2 py-2.5 text-xs font-semibold transition ' +
+                (!e.pamela_valide && !e.indisponible
+                  ? 'border-[var(--border-strong)] bg-[var(--muted)] text-[var(--foreground)]'
+                  : 'border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] hover:bg-[var(--muted)]')
+              }
+            >
+              <RotateCcw className="h-4 w-4" />
+              À valider
+            </button>
+            <button
+              disabled={update.isPending}
+              onClick={() => update.mutate({ id: e.id, patch: { pamela_valide: false, indisponible: true } })}
+              className={
+                'flex flex-col items-center gap-1 rounded-lg border px-2 py-2.5 text-xs font-semibold transition ' +
+                (e.indisponible
+                  ? 'border-red-500/60 bg-red-500/15 text-red-300 shadow-[0_0_0_1px_rgba(239,68,68,0.25)]'
+                  : 'border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] hover:border-red-500/40 hover:text-red-300')
+              }
+            >
+              <Ban className="h-4 w-4" />
+              Invalide
+            </button>
+          </div>
+          <p className="mt-2 text-[11px] leading-snug text-[var(--muted-foreground)]">
+            {e.indisponible
+              ? '⛔ Mise de côté — à ne pas contacter.'
+              : e.pamela_valide
+                ? '✅ Validée — elle est dans « Prêtes à prospecter ».'
+                : 'Copie l’UID, vérifie l’entreprise dans Pamela, puis marque le statut.'}
+          </p>
+        </section>
+
         {/* Pourquoi prioritaire */}
         {score.raisons.length > 0 && (
           <section>
@@ -321,65 +379,6 @@ export function EntrepriseDetail({
             </div>
           </div>
 
-          {/* Statut Pamela */}
-          <div>
-            <div className="mb-1.5 flex items-center justify-between">
-              <span className="inline-flex items-center gap-1.5 text-xs text-[var(--muted-foreground)]">
-                <ShieldCheck className="h-3.5 w-3.5" />
-                Vérification Pamela (CRM interne)
-              </span>
-              {e.business_uid && <UidBadge uid={e.business_uid} />}
-            </div>
-            <p className="mb-2 text-[11px] leading-snug text-[var(--muted-foreground)]">
-              Copie l'UID ci-dessus, recherche l'entreprise dans Pamela, puis marque le statut :
-            </p>
-            <div className="grid grid-cols-1 gap-1.5">
-              <button
-                disabled={update.isPending}
-                onClick={() => update.mutate({ id: e.id, patch: { pamela_valide: true, indisponible: false } })}
-                className={
-                  'flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium transition ' +
-                  (e.pamela_valide && !e.indisponible
-                    ? 'border-[color:rgba(30,215,96,0.5)] bg-[var(--salt-soft)] text-[var(--color-salt)]'
-                    : 'border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] hover:bg-[var(--muted)]')
-                }
-              >
-                <ShieldCheck className="h-4 w-4" />
-                Validé — prête à prospecter
-              </button>
-              <button
-                disabled={update.isPending}
-                onClick={() => update.mutate({ id: e.id, patch: { pamela_valide: false, indisponible: false } })}
-                className={
-                  'flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium transition ' +
-                  (!e.pamela_valide && !e.indisponible
-                    ? 'border-[var(--border-strong)] bg-[var(--muted)] text-[var(--foreground)]'
-                    : 'border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] hover:bg-[var(--muted)]')
-                }
-              >
-                <RotateCcw className="h-4 w-4" />
-                À valider
-              </button>
-              <button
-                disabled={update.isPending}
-                onClick={() => update.mutate({ id: e.id, patch: { pamela_valide: false, indisponible: true } })}
-                className={
-                  'flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium transition ' +
-                  (e.indisponible
-                    ? 'border-red-500/50 bg-red-500/10 text-red-300'
-                    : 'border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] hover:bg-[var(--muted)]')
-                }
-              >
-                <Ban className="h-4 w-4" />
-                Invalide — ne pas contacter
-              </button>
-            </div>
-            {e.statut_pamela_origine && (
-              <p className="mt-1.5 text-xs text-[var(--muted-foreground)]">
-                Origine : {e.statut_pamela_origine}
-              </p>
-            )}
-          </div>
         </section>
 
         {/* Décideurs */}
