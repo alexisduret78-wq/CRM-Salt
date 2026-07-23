@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   Search,
   MapPin,
@@ -63,6 +63,7 @@ export default function Prospection() {
     () => (typeof localStorage !== 'undefined' ? localStorage.getItem('salt-rail-ouvert') !== '0' : true)
   )
   const [selection, setSelection] = useState<string | null>(null)
+  const searchRef = useRef<HTMLInputElement>(null)
 
   // Mémorise l'état du rail (ouvert/replié) d'une session à l'autre.
   useEffect(() => {
@@ -203,6 +204,40 @@ export default function Prospection() {
 
   const selectionnee = filtreesBase.find((f) => f.entreprise.id === selection) ?? null
 
+  // Raccourcis clavier : ⌘K / « / » = recherche, flèches = navigation, Échap = fermer.
+  useEffect(() => {
+    function onKey(ev: KeyboardEvent) {
+      const t = ev.target as HTMLElement | null
+      const typing = !!t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT')
+      if ((ev.key === 'k' && (ev.metaKey || ev.ctrlKey)) || (ev.key === '/' && !typing)) {
+        ev.preventDefault()
+        searchRef.current?.focus()
+        searchRef.current?.select()
+        return
+      }
+      if (ev.key === 'Escape' && selection) {
+        setSelection(null)
+        return
+      }
+      if (typing || !filtreesListe.length) return
+      if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') {
+        ev.preventDefault()
+        const idx = filtreesListe.findIndex((f) => f.entreprise.id === selection)
+        const next =
+          idx === -1
+            ? 0
+            : Math.max(0, Math.min(filtreesListe.length - 1, idx + (ev.key === 'ArrowDown' ? 1 : -1)))
+        const id = filtreesListe[next].entreprise.id
+        setSelection(id)
+        requestAnimationFrame(() =>
+          document.querySelector(`[data-row-id="${id}"]`)?.scrollIntoView({ block: 'nearest' })
+        )
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [selection, filtreesListe])
+
   const nbFiltresActifs =
     (segment !== 'tous' ? 1 : 0) +
     (canton !== 'tous' ? 1 : 0) +
@@ -251,20 +286,24 @@ export default function Prospection() {
           <div className="relative">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted-foreground)]" />
             <input
+              ref={searchRef}
               value={recherche}
               onChange={(e) => setRecherche(e.target.value)}
               placeholder="Rechercher…"
-              className="w-full rounded-lg border bg-[var(--background)] py-2 pl-8 pr-3 text-sm outline-none transition placeholder:text-[var(--muted-foreground)] focus:border-[var(--color-salt)] focus:ring-2 focus:ring-[color:var(--salt-soft-strong)]"
+              className="w-full rounded-lg border bg-[var(--background)] py-2 pl-8 pr-12 text-sm outline-none transition placeholder:text-[var(--muted-foreground)] focus:border-[var(--color-salt)] focus:ring-2 focus:ring-[color:var(--salt-soft-strong)]"
             />
+            <kbd className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 rounded border border-[var(--border-strong)] bg-[var(--muted)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--muted-foreground)]">
+              ⌘K
+            </kbd>
           </div>
 
           {/* Prêtes à prospecter — liste prioritaire (validées Pamela) */}
           <button
             onClick={() => setSource('pretes')}
             className={
-              'flex w-full items-center gap-2 rounded-lg border px-2.5 py-2.5 text-sm font-semibold transition ' +
+              'press flex w-full items-center gap-2 rounded-lg border px-2.5 py-2.5 text-sm font-semibold ' +
               (source === 'pretes'
-                ? 'border-[color:rgba(30,215,96,0.6)] bg-[var(--color-salt)] text-[var(--color-salt-ink)]'
+                ? 'glow-salt border-[color:rgba(30,215,96,0.6)] bg-[var(--color-salt)] text-[var(--color-salt-ink)]'
                 : 'border-[color:rgba(30,215,96,0.4)] bg-[var(--salt-soft)] text-[var(--color-salt)] hover:bg-[var(--salt-soft-strong)]')
             }
           >
@@ -447,14 +486,14 @@ export default function Prospection() {
 
       {/* Colonne principale : barre fine + liste pleine hauteur */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex items-center justify-between gap-3 border-b bg-[var(--card)] px-6 py-2.5">
-          <div className="flex flex-wrap items-center gap-x-2 text-xs text-[var(--muted-foreground)]">
+        <div className="flex items-center justify-between gap-3 border-b bg-[var(--card)] px-6 py-3">
+          <div className="flex items-center gap-3">
             {!railOuvert && (
               <button
                 onClick={() => setRailOuvert(true)}
                 title="Afficher les filtres"
                 className={
-                  'relative inline-flex h-7 w-7 items-center justify-center rounded-lg border transition ' +
+                  'press relative inline-flex h-8 w-8 items-center justify-center rounded-lg border transition ' +
                   (nbFiltresActifs > 0
                     ? 'border-[color:rgba(30,215,96,0.4)] bg-[var(--salt-soft)] text-[var(--color-salt)]'
                     : 'border-[var(--border)] text-[var(--muted-foreground)] hover:border-[var(--border-strong)] hover:text-[var(--foreground)]')
@@ -468,15 +507,14 @@ export default function Prospection() {
                 )}
               </button>
             )}
-            <span className="text-sm font-semibold text-[var(--foreground)]">
-              {isLoading ? 'Chargement…' : `${nbAffichees} entreprise${nbAffichees > 1 ? 's' : ''}`}
-            </span>
-            {!isLoading && potentiel.lignes > 0 && (
-              <span className="tabular">
-                · potentiel ≈ {potentiel.lignes} lignes ·{' '}
-                <span className="font-medium text-[var(--color-salt)]">{fmtCHFk(potentiel.valeur)}/an</span>
-              </span>
-            )}
+            {/* Synthèse : 3 chiffres clés */}
+            <div className="flex items-stretch gap-2">
+              <Stat value={isLoading ? '—' : String(nbAffichees)} label="entreprises" />
+              <span className="w-px self-stretch bg-[var(--border)]" />
+              <Stat value={isLoading ? '—' : `≈${potentiel.lignes}`} label="lignes mobiles" />
+              <span className="w-px self-stretch bg-[var(--border)]" />
+              <Stat value={isLoading ? '—' : `${fmtCHFk(potentiel.valeur)}`} label="/ an potentiel" salt />
+            </div>
           </div>
           <Select value={tri} onChange={(v) => setTri(v as Tri)} label="Trier">
             <option value="priorite">Priorité ↓</option>
@@ -494,6 +532,8 @@ export default function Prospection() {
             </div>
           )}
 
+          {isLoading && !error && <SkeletonTable />}
+
           {!isLoading && !error && scorees.length === 0 && (
             <div className="p-10">
               <ImportBanner vide />
@@ -503,7 +543,11 @@ export default function Prospection() {
           {!isLoading && !error && scorees.length > 0 && (
             <div className="h-full overflow-auto">
               {filtreesListe.length === 0 ? (
-                <EmptyState onReset={reset} showReset={nbFiltresActifs > 0} />
+                <EmptyState
+                  source={source}
+                  onReset={reset}
+                  showReset={nbFiltresActifs > 0 || !!recherche}
+                />
               ) : (
                 <table className="w-full border-separate border-spacing-0 text-sm">
                   <thead className="sticky top-0 z-10">
@@ -570,8 +614,11 @@ function Ligne({
   return (
     <tr
       onClick={onClick}
+      data-row-id={e.id}
+      style={{ animationDelay: `${Math.min(rang - 1, 14) * 20}ms` }}
       className={
-        'group cursor-pointer transition ' + (active ? 'bg-[var(--salt-soft)]' : 'hover:bg-[var(--card)]')
+        'group cursor-pointer rise transition-colors ' +
+        (active ? 'bg-[var(--salt-soft)]' : 'hover:bg-[var(--card)]')
       }
     >
       <Td className="pl-6 text-xs text-[var(--muted-foreground)] tabular">{rang}</Td>
@@ -579,8 +626,8 @@ function Ligne({
         <div className="flex items-center gap-2">
           <span className="font-medium text-[var(--foreground)]">{e.nom}</span>
           {estDecouverte(e) && (
-            <span className="inline-flex items-center gap-0.5 rounded bg-violet-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-violet-300">
-              <Sparkles className="h-2.5 w-2.5" /> Découverte
+            <span className="inline-flex items-center gap-1 rounded border border-[var(--border-strong)] bg-[var(--muted)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--muted-foreground)]">
+              <Sparkles className="h-2.5 w-2.5 text-[var(--color-salt)]" /> Découverte
             </span>
           )}
           <SiegeBadge uid={e.business_uid} />
@@ -655,7 +702,7 @@ function Ligne({
             update.mutate({ id: e.id, patch })
           }}
           className={
-            'inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-medium transition ' +
+            'press inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-medium ' +
             (e.indisponible
               ? 'border-red-500/40 bg-red-500/10 text-red-300 hover:bg-red-500/20'
               : e.pamela_valide
@@ -674,16 +721,87 @@ function Ligne({
 
 // --- Sous-composants --------------------------------------------------------
 
-function EmptyState({ onReset, showReset }: { onReset: () => void; showReset: boolean }) {
+// Chiffre clé de la barre de synthèse.
+function Stat({ value, label, salt = false }: { value: string; label: string; salt?: boolean }) {
   return (
-    <div className="p-12 text-center">
-      <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--muted)]">
-        <Search className="h-5 w-5 text-[var(--muted-foreground)]" />
+    <div className="px-1">
+      <div className={'text-lg font-semibold leading-none tabular ' + (salt ? 'text-[var(--color-salt)]' : 'text-[var(--foreground)]')}>
+        {value}
       </div>
-      <p className="text-sm font-medium">Aucune entreprise ne correspond</p>
-      <p className="mt-1 text-xs text-[var(--muted-foreground)]">Essaie d'élargir les filtres.</p>
+      <div className="mt-1 text-[11px] text-[var(--muted-foreground)]">{label}</div>
+    </div>
+  )
+}
+
+// Squelette de chargement (reproduit la structure du tableau).
+function SkeletonTable() {
+  return (
+    <div className="space-y-px p-px">
+      {Array.from({ length: 12 }).map((_, i) => (
+        <div key={i} className="flex items-center gap-4 border-b border-[var(--border)] px-6 py-3.5">
+          <div className="skeleton h-3 w-4" />
+          <div className="flex-1 space-y-1.5">
+            <div className="skeleton h-3.5 w-48" style={{ opacity: 1 - i * 0.05 }} />
+            <div className="skeleton h-2.5 w-28" />
+          </div>
+          <div className="skeleton hidden h-3 w-40 lg:block" />
+          <div className="skeleton h-8 w-12 rounded-lg" />
+          <div className="skeleton hidden h-3 w-32 md:block" />
+          <div className="skeleton h-4 w-20 rounded-full" />
+          <div className="skeleton h-6 w-16 rounded-full" />
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// Message d'état vide, contextualisé selon la liste consultée.
+function EmptyState({
+  source,
+  onReset,
+  showReset,
+}: {
+  source: SourceFiltre
+  onReset: () => void
+  showReset: boolean
+}) {
+  const cfg: Record<SourceFiltre, { icon: React.ReactNode; titre: string; sous: string }> = {
+    pretes: {
+      icon: <Rocket className="h-6 w-6 text-[var(--color-salt)]" />,
+      titre: 'Aucune entreprise prête, pour l’instant',
+      sous: 'Valide des entreprises dans Pamela (statut « Validé ») et elles arriveront ici, prêtes à être appelées.',
+    },
+    invalides: {
+      icon: <Ban className="h-6 w-6 text-red-300" />,
+      titre: 'Aucune entreprise invalide',
+      sous: 'Les entreprises marquées « Invalide — ne pas contacter » seront regroupées ici.',
+    },
+    claude: {
+      icon: <Sparkles className="h-6 w-6 text-[var(--color-salt)]" />,
+      titre: 'Aucune découverte à qualifier',
+      sous: 'Élargis la zone ou les filtres, ou importe une nouvelle vague de découvertes.',
+    },
+    fichiers: {
+      icon: <FolderOpen className="h-6 w-6 text-[var(--muted-foreground)]" />,
+      titre: 'Aucune entreprise dans tes fichiers',
+      sous: 'Ajuste les filtres pour retrouver tes comptes en portefeuille.',
+    },
+    toutes: {
+      icon: <Search className="h-6 w-6 text-[var(--muted-foreground)]" />,
+      titre: 'Aucune entreprise ne correspond',
+      sous: 'Essaie d’élargir les filtres ou la recherche.',
+    },
+  }
+  const c = cfg[source]
+  return (
+    <div className="flex h-full flex-col items-center justify-center p-12 text-center animate-fadein">
+      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-[var(--border-strong)] bg-[var(--card-2)]">
+        {c.icon}
+      </div>
+      <p className="text-base font-semibold">{c.titre}</p>
+      <p className="mt-1.5 max-w-xs text-sm text-[var(--muted-foreground)]">{c.sous}</p>
       {showReset && (
-        <button onClick={onReset} className="btn-salt mt-3 px-3 py-1.5 text-xs">
+        <button onClick={onReset} className="btn-salt press mt-4 px-3.5 py-1.5 text-xs">
           Réinitialiser les filtres
         </button>
       )}

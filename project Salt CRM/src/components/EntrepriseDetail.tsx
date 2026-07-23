@@ -533,15 +533,23 @@ function EmailDraft({
           Brouillon email — 1er RDV
         </span>
       </SectionTitle>
-      <div className="rounded-md border bg-[var(--card-2)] p-3">
-        <div className="mb-1 text-xs font-medium">Objet : {objet}</div>
-        <pre className="whitespace-pre-wrap font-sans text-xs leading-relaxed text-[var(--foreground)]">
+      <div className="overflow-hidden rounded-xl border border-[var(--border-strong)] bg-[var(--card-2)]">
+        <div className="flex items-center justify-between gap-2 border-b border-[var(--border)] bg-[var(--card)] px-3 py-2">
+          <div className="min-w-0">
+            <div className="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted-foreground)]">Objet</div>
+            <div className="truncate text-xs font-medium text-[var(--foreground)]">{objet}</div>
+          </div>
+          <button
+            onClick={copier}
+            className="btn-salt press inline-flex shrink-0 items-center gap-1.5 px-2.5 py-1.5 text-xs"
+          >
+            {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+            {copied ? 'Copié' : 'Copier'}
+          </button>
+        </div>
+        <pre className="max-h-64 overflow-auto whitespace-pre-wrap px-3 py-3 font-sans text-xs leading-relaxed text-[var(--foreground)]">
           {corps}
         </pre>
-        <button onClick={copier} className="btn-salt mt-2 inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs">
-          {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-          Copier l'email
-        </button>
       </div>
     </section>
   )

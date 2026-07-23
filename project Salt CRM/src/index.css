@@ -12,13 +12,16 @@
 :root {
   /* Thème sombre premium — fond noir, texte blanc/vert */
   --background: #08080a;
-  --foreground: #f4f4f6;
+  --foreground: #f5f5f7;
   --card: #141417;
   --card-2: #1a1a1e;
   --muted: #1d1d21;
-  --muted-foreground: #8d8d96;
+  --muted-foreground: #a1a1ab; /* remonté pour lisibilité (AA sur fond noir) */
   --border: #26262b;
   --border-strong: #34343b;
+  /* Sémantiques — distincts de l'accent vert */
+  --warn: #f5b944;
+  --crit: #f2555a;
   --input: #26262b;
   --ring: #1ed760;
   --accent: #1d1d21;
@@ -61,6 +64,25 @@
 
 * {
   border-color: var(--border);
+}
+
+/* Focus visible unifié — un seul style, visible au clavier partout */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-salt);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Respect des préférences de mouvement réduit */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 html,
@@ -145,4 +167,51 @@ body {
 }
 .animate-slidein {
   animation: slidein 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* --- Profondeur & interactions premium --- */
+.elev {
+  box-shadow: var(--shadow-md);
+}
+.glow-salt {
+  box-shadow: var(--shadow-glow);
+}
+/* Retour tactile au clic (léger enfoncement) */
+.press {
+  transition: transform 0.06s ease, filter 0.15s ease, background-color 0.15s ease,
+    border-color 0.15s ease, color 0.15s ease;
+}
+.press:active {
+  transform: translateY(1px);
+}
+
+/* --- Squelettes de chargement (shimmer) --- */
+@keyframes shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+.skeleton {
+  background: linear-gradient(90deg, #1c1c21 25%, #292930 37%, #1c1c21 63%);
+  background-size: 300% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 6px;
+}
+
+/* --- Apparition des lignes / cartes (cascade légère) --- */
+@keyframes riseIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.rise {
+  animation: riseIn 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
