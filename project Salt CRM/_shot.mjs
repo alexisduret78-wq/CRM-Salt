@@ -2,9 +2,9 @@ import { chromium } from 'playwright'
 import { readFileSync } from 'fs'
 const P='/tmp/claude-0/-home-user-CRM-Salt/c53d90d3-c893-553a-a5aa-87e909d1ff50/scratchpad/'
 const master = JSON.parse(readFileSync(P+'decouvertes_MASTER_import.json','utf8'))
-const ents = master.entreprises.map((e,i) => ({...e, adresse:null, pamela_valide:false, indisponible: i===1, date_dernier_contact:null, date_prochaine_relance:null, priorite:null }))
+const ents = master.entreprises.map((e,i) => ({...e, adresse:null, pamela_valide:false, indisponible: i<3, date_dernier_contact:null, date_prochaine_relance:null, priorite:null }))
 const browser = await chromium.launch({ executablePath:'/opt/pw-browsers/chromium' })
-const page = await browser.newPage({ viewport:{ width:1440, height:860 } })
+const page = await browser.newPage({ viewport:{ width:1440, height:820 } })
 await page.route('**/*', (route) => {
   const url = route.request().url()
   if (url.includes('supabase.co')) {
@@ -21,11 +21,8 @@ await page.addInitScript(() => {
 })
 await page.goto('http://localhost:5190/', { waitUntil:'domcontentloaded' })
 await page.waitForTimeout(3500)
-await page.click('table tbody tr:first-child')
-await page.waitForTimeout(700)
-// scroll detail to pamela block
-await page.evaluate(() => { const el=[...document.querySelectorAll('aside')].pop(); const t=[...el.querySelectorAll('*')].find(n=>n.textContent==='Vérification Pamela (CRM interne)'); t?.scrollIntoView() })
-await page.waitForTimeout(400)
-await page.screenshot({ path:P+'pamela3.png' })
-console.log('has Indisponible btn:', (await page.textContent('body')).includes('Indisponible'))
+await page.click('text=Invalides')
+await page.waitForTimeout(500)
+await page.screenshot({ path:P+'invalides.png' })
+console.log('count:', (await page.textContent('body')).match(/(\d+) entreprise/)?.[0])
 await browser.close()

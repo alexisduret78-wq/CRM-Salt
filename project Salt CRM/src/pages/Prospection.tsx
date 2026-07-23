@@ -31,7 +31,7 @@ import { ImportBanner } from '@/components/ImportBanner'
 
 type StatutFiltre = 'tous' | 'jamais' | 'ancien' | 'recent'
 type PamelaFiltre = 'tous' | 'valide' | 'a_valider' | 'indispo'
-type SourceFiltre = 'toutes' | 'fichiers' | 'claude' | 'pretes'
+type SourceFiltre = 'toutes' | 'fichiers' | 'claude' | 'pretes' | 'invalides'
 type TierFiltre = 'tous' | 'A' | 'B' | 'C'
 type FlotteFiltre = 'tous' | 'cible' | 'qualifier' | 'faible'
 type Tri = 'priorite' | 'taille' | 'nom'
@@ -91,9 +91,10 @@ export default function Prospection() {
 
   const scope = useMemo(() => {
     return scorees.filter(({ entreprise: e }) => {
-      // « Indisponible » (on ne peut pas contacter) : mise de côté, exclue des
-      // listes de travail, visible seulement dans « Toutes ».
-      if (source !== 'toutes' && e.indisponible) return false
+      // « Invalides » (ne pas contacter) : liste dédiée. Exclues des listes de
+      // travail, regroupées dans leur propre onglet (+ visibles dans « Toutes »).
+      if (source === 'invalides' && !e.indisponible) return false
+      if (source !== 'toutes' && source !== 'invalides' && e.indisponible) return false
       // « Prêtes à prospecter » = validées Pamela. Une fois validées, elles
       // quittent Découvertes / Mes fichiers pour cette liste prioritaire.
       if (source === 'pretes' && !e.pamela_valide) return false
@@ -129,13 +130,17 @@ export default function Prospection() {
     let pretes = 0
     let claude = 0
     let fichiers = 0
+    let invalides = 0
     for (const { entreprise: e } of base) {
-      if (e.indisponible) continue // mise de côté, hors listes de travail
+      if (e.indisponible) {
+        invalides++
+        continue // mise de côté, hors listes de travail
+      }
       if (e.pamela_valide) pretes++
       else if (estDecouverte(e)) claude++
       else fichiers++
     }
-    return { pretes, claude, fichiers, toutes: base.length }
+    return { pretes, claude, fichiers, invalides, toutes: base.length }
   }, [scorees, masquerClients, zoneUniquement])
 
   const kpis = useMemo(
@@ -300,6 +305,21 @@ export default function Prospection() {
                 <span className="rounded-full bg-white/8 px-1.5 py-0.5 text-[10px] font-semibold tabular">{s.count}</span>
               </button>
             ))}
+
+            {/* Invalides — ne pas contacter (mises de côté) */}
+            <button
+              onClick={() => setSource('invalides')}
+              className={
+                'flex w-full items-center gap-2 rounded-lg border px-2.5 py-2 text-sm font-medium transition ' +
+                (source === 'invalides'
+                  ? 'border-red-500/50 bg-red-500/10 text-red-300'
+                  : 'border-[var(--border)] bg-[var(--background)] text-[var(--muted-foreground)] hover:border-red-500/40 hover:text-red-300')
+              }
+            >
+              <Ban className="h-4 w-4" />
+              <span className="flex-1 text-left">Invalides</span>
+              <span className="rounded-full bg-white/8 px-1.5 py-0.5 text-[10px] font-semibold tabular">{compteSource.invalides}</span>
+            </button>
           </div>
 
           {/* Raccourcis (KPI cliquables) */}
@@ -645,7 +665,7 @@ function Ligne({
           title="Statut Pamela — cliquer pour changer (à valider → validé → indisponible)"
         >
           {e.indisponible ? <Ban className="h-3 w-3" /> : <ShieldCheck className="h-3 w-3" />}
-          {e.indisponible ? 'Indispo' : e.pamela_valide ? 'Validé' : 'À valider'}
+          {e.indisponible ? 'Invalide' : e.pamela_valide ? 'Validé' : 'À valider'}
         </button>
       </Td>
     </tr>

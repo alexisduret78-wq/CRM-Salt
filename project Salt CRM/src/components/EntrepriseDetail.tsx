@@ -371,7 +371,7 @@ export function EntrepriseDetail({
                 }
               >
                 <Ban className="h-4 w-4" />
-                Indisponible — ne pas contacter
+                Invalide — ne pas contacter
               </button>
             </div>
             {e.statut_pamela_origine && (
