@@ -46,7 +46,7 @@ export default function Prospection() {
 
   const [recherche, setRecherche] = useState('')
   const [zoneUniquement, setZoneUniquement] = useState(true)
-  const [tailleMin, setTailleMin] = useState(50)
+  const [tailleMin, setTailleMin] = useState(0)
   const [statut, setStatut] = useState<StatutFiltre>('tous')
   const [sansDecideur, setSansDecideur] = useState(false)
   const [relanceDue, setRelanceDue] = useState(false)
