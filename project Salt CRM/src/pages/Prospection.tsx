@@ -111,9 +111,12 @@ export default function Prospection() {
       // travail, regroupées dans leur propre onglet (+ visibles dans « Toutes »).
       if (source === 'invalides' && !e.indisponible) return false
       if (source !== 'toutes' && source !== 'invalides' && e.indisponible) return false
-      // À qualifier (non validées) : découvertes / candidats re-prospection / autres fichiers
-      if (source === 'claude' && (!estDecouverte(e) || e.pamela_valide)) return false
-      if (source === 'areprospect' && (!estReprospect(e) || e.pamela_valide)) return false
+      // À qualifier (non validées) : découvertes / candidats re-prospection / autres fichiers.
+      // Plancher DUR : ≥ 20 lignes mobiles estimées (le vrai critère de ciblage).
+      if (source === 'claude' && (!estDecouverte(e) || e.pamela_valide || flotteInfo(e).lignes < 20))
+        return false
+      if (source === 'areprospect' && (!estReprospect(e) || e.pamela_valide || flotteInfo(e).lignes < 20))
+        return false
       if (source === 'fichiers' && (estDecouverte(e) || estReprospect(e) || e.pamela_valide)) return false
       // Validées Pamela : découvertes → « Prêtes à prospecter » ;
       // entreprises déjà connues → « Prête à re-prospecter ».
@@ -160,9 +163,11 @@ export default function Prospection() {
       if (e.pamela_valide) {
         if (estDecouverte(e)) pretes++
         else reprospect++
-      } else if (estDecouverte(e)) claude++
-      else if (estReprospect(e)) areprospect++
-      else fichiers++
+      } else if (estDecouverte(e)) {
+        if (flotteInfo(e).lignes >= 20) claude++
+      } else if (estReprospect(e)) {
+        if (flotteInfo(e).lignes >= 20) areprospect++
+      } else fichiers++
     }
     return { pretes, reprospect, claude, areprospect, fichiers, invalides, toutes: base.length }
   }, [scorees, masquerClients, zoneUniquement])
