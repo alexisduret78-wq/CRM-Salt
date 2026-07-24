@@ -112,11 +112,8 @@ export default function Prospection() {
       if (source === 'invalides' && !e.indisponible) return false
       if (source !== 'toutes' && source !== 'invalides' && e.indisponible) return false
       // À qualifier (non validées) : découvertes / candidats re-prospection / autres fichiers.
-      // Plancher : ≥ 20 lignes estimées SI l'effectif est connu (on ne masque pas
-      // une cible dont l'effectif manque — potentiel « inconnu », pas « faible »).
-      const sousSeuil = e.taille_employes != null && flotteInfo(e).lignes < 20
-      if (source === 'claude' && (!estDecouverte(e) || e.pamela_valide || sousSeuil)) return false
-      if (source === 'areprospect' && (!estReprospect(e) || e.pamela_valide || sousSeuil)) return false
+      if (source === 'claude' && (!estDecouverte(e) || e.pamela_valide)) return false
+      if (source === 'areprospect' && (!estReprospect(e) || e.pamela_valide)) return false
       if (source === 'fichiers' && (estDecouverte(e) || estReprospect(e) || e.pamela_valide)) return false
       // Validées Pamela : découvertes → « Prêtes à prospecter » ;
       // entreprises déjà connues → « Prête à re-prospecter ».
@@ -163,11 +160,9 @@ export default function Prospection() {
       if (e.pamela_valide) {
         if (estDecouverte(e)) pretes++
         else reprospect++
-      } else if (estDecouverte(e)) {
-        if (e.taille_employes == null || flotteInfo(e).lignes >= 20) claude++
-      } else if (estReprospect(e)) {
-        if (e.taille_employes == null || flotteInfo(e).lignes >= 20) areprospect++
-      } else fichiers++
+      } else if (estDecouverte(e)) claude++
+      else if (estReprospect(e)) areprospect++
+      else fichiers++
     }
     return { pretes, reprospect, claude, areprospect, fichiers, invalides, toutes: base.length }
   }, [scorees, masquerClients, zoneUniquement])
