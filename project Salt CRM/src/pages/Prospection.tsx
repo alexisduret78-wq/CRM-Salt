@@ -21,7 +21,14 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useEntreprises, useUpdateEntreprise, useDeleteEntreprises } from '@/hooks/useEntreprises'
-import { estDansZone, estDecouverte, scorerEntreprise, segmentDe, type ScoreDetail } from '@/lib/scoring'
+import {
+  estDansZone,
+  estDecouverte,
+  estReprospect,
+  scorerEntreprise,
+  segmentDe,
+  type ScoreDetail,
+} from '@/lib/scoring'
 import { relanceInfo, totauxPotentiel, fmtCHFk, fmtDateCourt } from '@/lib/estimation'
 import { siegeHorsRomandie } from '@/lib/siege'
 import { flotteInfo } from '@/lib/flotte'
@@ -32,7 +39,14 @@ import { ImportBanner } from '@/components/ImportBanner'
 
 type StatutFiltre = 'tous' | 'jamais' | 'ancien' | 'recent'
 type PamelaFiltre = 'tous' | 'valide' | 'a_valider' | 'indispo'
-type SourceFiltre = 'toutes' | 'fichiers' | 'claude' | 'pretes' | 'reprospect' | 'invalides'
+type SourceFiltre =
+  | 'toutes'
+  | 'fichiers'
+  | 'claude'
+  | 'areprospect'
+  | 'pretes'
+  | 'reprospect'
+  | 'invalides'
 type TierFiltre = 'tous' | 'A' | 'B' | 'C'
 type FlotteFiltre = 'tous' | 'cible' | 'qualifier' | 'faible'
 type Tri = 'priorite' | 'taille' | 'nom'
@@ -97,12 +111,14 @@ export default function Prospection() {
       // travail, regroupées dans leur propre onglet (+ visibles dans « Toutes »).
       if (source === 'invalides' && !e.indisponible) return false
       if (source !== 'toutes' && source !== 'invalides' && e.indisponible) return false
+      // À qualifier (non validées) : découvertes / candidats re-prospection / autres fichiers
+      if (source === 'claude' && (!estDecouverte(e) || e.pamela_valide)) return false
+      if (source === 'areprospect' && (!estReprospect(e) || e.pamela_valide)) return false
+      if (source === 'fichiers' && (estDecouverte(e) || estReprospect(e) || e.pamela_valide)) return false
       // Validées Pamela : découvertes → « Prêtes à prospecter » ;
-      // entreprises de fichiers → « Prête à re-prospecter » (déjà connues).
+      // entreprises déjà connues → « Prête à re-prospecter ».
       if (source === 'pretes' && !(e.pamela_valide && estDecouverte(e))) return false
       if (source === 'reprospect' && !(e.pamela_valide && !estDecouverte(e))) return false
-      if (source === 'claude' && (!estDecouverte(e) || e.pamela_valide)) return false
-      if (source === 'fichiers' && (estDecouverte(e) || e.pamela_valide)) return false
       if (masquerClients && e.couleur === 'vert') return false
       if (zoneUniquement && !estDansZone(e)) return false
       return true
@@ -133,6 +149,7 @@ export default function Prospection() {
     let pretes = 0
     let reprospect = 0
     let claude = 0
+    let areprospect = 0
     let fichiers = 0
     let invalides = 0
     for (const { entreprise: e } of base) {
@@ -144,9 +161,10 @@ export default function Prospection() {
         if (estDecouverte(e)) pretes++
         else reprospect++
       } else if (estDecouverte(e)) claude++
+      else if (estReprospect(e)) areprospect++
       else fichiers++
     }
-    return { pretes, reprospect, claude, fichiers, invalides, toutes: base.length }
+    return { pretes, reprospect, claude, areprospect, fichiers, invalides, toutes: base.length }
   }, [scorees, masquerClients, zoneUniquement])
 
   const kpis = useMemo(
@@ -347,6 +365,7 @@ export default function Prospection() {
             {(
               [
                 { key: 'claude', label: 'Découvertes', icon: <Sparkles className="h-4 w-4" />, count: compteSource.claude },
+                { key: 'areprospect', label: 'À re-prospecter', icon: <RefreshCw className="h-4 w-4" />, count: compteSource.areprospect },
                 { key: 'fichiers', label: 'Mes fichiers', icon: <FolderOpen className="h-4 w-4" />, count: compteSource.fichiers },
                 { key: 'toutes', label: 'Toutes', icon: <Layers className="h-4 w-4" />, count: compteSource.toutes },
               ] as { key: SourceFiltre; label: string; icon: React.ReactNode; count: number }[]
@@ -796,7 +815,12 @@ function EmptyState({
     reprospect: {
       icon: <RefreshCw className="h-6 w-6 text-[var(--color-salt)]" />,
       titre: 'Aucune entreprise à re-prospecter',
-      sous: 'Valide dans Pamela des entreprises déjà connues (Mes fichiers) et elles arriveront ici pour être relancées.',
+      sous: 'Valide dans Pamela des candidats « À re-prospecter » et ils arriveront ici pour être relancés.',
+    },
+    areprospect: {
+      icon: <RefreshCw className="h-6 w-6 text-[var(--color-salt)]" />,
+      titre: 'Aucun candidat à re-prospecter',
+      sous: 'Les entreprises déjà connues retenues pour une relance (≥20 lignes, ≤500 empl.) apparaissent ici. Lance le script de tag si la liste est vide.',
     },
     invalides: {
       icon: <Ban className="h-6 w-6 text-red-300" />,

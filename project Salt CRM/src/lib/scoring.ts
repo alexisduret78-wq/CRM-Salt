@@ -196,6 +196,13 @@ export function estDecouverte(e: Entreprise): boolean {
   return hay.includes('decouverte claude')
 }
 
+// --- Entreprise « à re-prospecter » -----------------------------------------
+// Entreprises déjà connues (fichiers) retenues comme candidates à une relance :
+// taguées `origine = 'reprospect'` (cf. script SQL). Elles ont leur propre liste.
+export function estReprospect(e: Entreprise): boolean {
+  return e.origine === 'reprospect'
+}
+
 // --- Segment / famille de découverte ---------------------------------------
 // Les découvertes Claude portent leur famille dans `source_fichier`
 // (ex. "Découverte Claude v4 — Pharma & Biotech"). On l'extrait pour filtrer.

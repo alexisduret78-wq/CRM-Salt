@@ -4,8 +4,7 @@ const P='/tmp/claude-0/-home-user-CRM-Salt/c53d90d3-c893-553a-a5aa-87e909d1ff50/
 const master = JSON.parse(readFileSync(P+'decouvertes_MASTER_import.json','utf8'))
 const ents = master.entreprises.map((e,i) => {
   const base={...e, adresse:null, pamela_valide:false, indisponible:false, date_dernier_contact:null, date_prochaine_relance:null, priorite:null }
-  if (i<4) return {...base, origine:'fichiers', source_fichier:'Prospection.xlsx', statut_pamela_origine:null, notes_consolidees:null, pamela_valide:true } // faux "re-prospect"
-  if (i>=4 && i<7) return {...base, pamela_valide:true} // découvertes validées → Prêtes
+  if (i<8) return {...base, origine:'reprospect', source_fichier:'Prospection.xlsx', statut_pamela_origine:null, notes_consolidees:null } // taggés à re-prospecter
   return base
 })
 const browser = await chromium.launch({ executablePath:'/opt/pw-browsers/chromium' })
@@ -26,8 +25,8 @@ await page.addInitScript(() => {
 })
 await page.goto('http://localhost:5190/', { waitUntil:'domcontentloaded' })
 await page.waitForTimeout(3500)
-await page.click('text=Prête à re-prospecter')
+await page.click('text=À re-prospecter >> nth=0')
 await page.waitForTimeout(500)
-await page.screenshot({ path:P+'reprospect.png' })
+await page.screenshot({ path:P+'areprospect.png' })
 console.log('ok')
 await browser.close()
