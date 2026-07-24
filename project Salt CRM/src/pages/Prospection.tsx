@@ -16,6 +16,7 @@ import {
   Bell,
   Trash2,
   Rocket,
+  RefreshCw,
   Ban,
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -31,7 +32,7 @@ import { ImportBanner } from '@/components/ImportBanner'
 
 type StatutFiltre = 'tous' | 'jamais' | 'ancien' | 'recent'
 type PamelaFiltre = 'tous' | 'valide' | 'a_valider' | 'indispo'
-type SourceFiltre = 'toutes' | 'fichiers' | 'claude' | 'pretes' | 'invalides'
+type SourceFiltre = 'toutes' | 'fichiers' | 'claude' | 'pretes' | 'reprospect' | 'invalides'
 type TierFiltre = 'tous' | 'A' | 'B' | 'C'
 type FlotteFiltre = 'tous' | 'cible' | 'qualifier' | 'faible'
 type Tri = 'priorite' | 'taille' | 'nom'
@@ -96,9 +97,10 @@ export default function Prospection() {
       // travail, regroupées dans leur propre onglet (+ visibles dans « Toutes »).
       if (source === 'invalides' && !e.indisponible) return false
       if (source !== 'toutes' && source !== 'invalides' && e.indisponible) return false
-      // « Prêtes à prospecter » = validées Pamela. Une fois validées, elles
-      // quittent Découvertes / Mes fichiers pour cette liste prioritaire.
-      if (source === 'pretes' && !e.pamela_valide) return false
+      // Validées Pamela : découvertes → « Prêtes à prospecter » ;
+      // entreprises de fichiers → « Prête à re-prospecter » (déjà connues).
+      if (source === 'pretes' && !(e.pamela_valide && estDecouverte(e))) return false
+      if (source === 'reprospect' && !(e.pamela_valide && !estDecouverte(e))) return false
       if (source === 'claude' && (!estDecouverte(e) || e.pamela_valide)) return false
       if (source === 'fichiers' && (estDecouverte(e) || e.pamela_valide)) return false
       if (masquerClients && e.couleur === 'vert') return false
@@ -129,6 +131,7 @@ export default function Prospection() {
       return true
     })
     let pretes = 0
+    let reprospect = 0
     let claude = 0
     let fichiers = 0
     let invalides = 0
@@ -137,11 +140,13 @@ export default function Prospection() {
         invalides++
         continue // mise de côté, hors listes de travail
       }
-      if (e.pamela_valide) pretes++
-      else if (estDecouverte(e)) claude++
+      if (e.pamela_valide) {
+        if (estDecouverte(e)) pretes++
+        else reprospect++
+      } else if (estDecouverte(e)) claude++
       else fichiers++
     }
-    return { pretes, claude, fichiers, invalides, toutes: base.length }
+    return { pretes, reprospect, claude, fichiers, invalides, toutes: base.length }
   }, [scorees, masquerClients, zoneUniquement])
 
   const kpis = useMemo(
@@ -316,6 +321,23 @@ export default function Prospection() {
               }
             >
               {compteSource.pretes}
+            </span>
+          </button>
+
+          {/* Prête à re-prospecter — entreprises de fichiers validées Pamela */}
+          <button
+            onClick={() => setSource('reprospect')}
+            className={
+              'press -mt-2 flex w-full items-center gap-2 rounded-lg border px-2.5 py-2 text-sm font-medium ' +
+              (source === 'reprospect'
+                ? 'border-[color:rgba(30,215,96,0.5)] bg-[var(--salt-soft-strong)] text-[var(--color-salt)]'
+                : 'border-[color:rgba(30,215,96,0.25)] bg-[var(--salt-soft)] text-[var(--color-salt)] hover:bg-[var(--salt-soft-strong)]')
+            }
+          >
+            <RefreshCw className="h-4 w-4" />
+            <span className="flex-1 text-left">Prête à re-prospecter</span>
+            <span className="rounded-full bg-[var(--color-salt)] px-1.5 py-0.5 text-[10px] font-bold tabular text-[var(--color-salt-ink)]">
+              {compteSource.reprospect}
             </span>
           </button>
 
@@ -769,7 +791,12 @@ function EmptyState({
     pretes: {
       icon: <Rocket className="h-6 w-6 text-[var(--color-salt)]" />,
       titre: 'Aucune entreprise prête, pour l’instant',
-      sous: 'Valide des entreprises dans Pamela (statut « Validé ») et elles arriveront ici, prêtes à être appelées.',
+      sous: 'Valide des découvertes dans Pamela (statut « Validé ») et elles arriveront ici, prêtes à être appelées.',
+    },
+    reprospect: {
+      icon: <RefreshCw className="h-6 w-6 text-[var(--color-salt)]" />,
+      titre: 'Aucune entreprise à re-prospecter',
+      sous: 'Valide dans Pamela des entreprises déjà connues (Mes fichiers) et elles arriveront ici pour être relancées.',
     },
     invalides: {
       icon: <Ban className="h-6 w-6 text-red-300" />,

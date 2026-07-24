@@ -2,7 +2,12 @@ import { chromium } from 'playwright'
 import { readFileSync } from 'fs'
 const P='/tmp/claude-0/-home-user-CRM-Salt/c53d90d3-c893-553a-a5aa-87e909d1ff50/scratchpad/'
 const master = JSON.parse(readFileSync(P+'decouvertes_MASTER_import.json','utf8'))
-const ents = master.entreprises.map((e) => ({...e, adresse:null, pamela_valide:false, indisponible:false, date_dernier_contact:null, date_prochaine_relance:null, priorite:null }))
+const ents = master.entreprises.map((e,i) => {
+  const base={...e, adresse:null, pamela_valide:false, indisponible:false, date_dernier_contact:null, date_prochaine_relance:null, priorite:null }
+  if (i<4) return {...base, origine:'fichiers', source_fichier:'Prospection.xlsx', statut_pamela_origine:null, notes_consolidees:null, pamela_valide:true } // faux "re-prospect"
+  if (i>=4 && i<7) return {...base, pamela_valide:true} // découvertes validées → Prêtes
+  return base
+})
 const browser = await chromium.launch({ executablePath:'/opt/pw-browsers/chromium' })
 const page = await browser.newPage({ viewport:{ width:1440, height:820 } })
 await page.route('**/*', (route) => {
@@ -21,8 +26,8 @@ await page.addInitScript(() => {
 })
 await page.goto('http://localhost:5190/', { waitUntil:'domcontentloaded' })
 await page.waitForTimeout(3500)
-await page.screenshot({ path:P+'premium_list.png' })
-await page.click('table tbody tr:first-child')
-await page.waitForTimeout(700)
-await page.screenshot({ path:P+'premium_detail.png' })
+await page.click('text=Prête à re-prospecter')
+await page.waitForTimeout(500)
+await page.screenshot({ path:P+'reprospect.png' })
+console.log('ok')
 await browser.close()
