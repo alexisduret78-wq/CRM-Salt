@@ -17,6 +17,8 @@ import {
   Signal,
   Trash2,
   Ban,
+  Send,
+  ChevronDown,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { EntrepriseAvecContacts } from '@/lib/database.types'
@@ -32,6 +34,8 @@ import {
   dansNJours,
 } from '@/lib/estimation'
 import { infererEmail } from '@/lib/email'
+import { classerDecideurs, type RangDecideur } from '@/lib/decideurs'
+import { objetEmail, corpsEmail, lienMailto } from '@/lib/mailto'
 import { useUpdateEntreprise, useDeleteEntreprises } from '@/hooks/useEntreprises'
 import { CouleurBadge, TierBadge, UidBadge, SiegeBadge, FlotteBadge } from '@/components/badges'
 import { flotteInfo } from '@/lib/flotte'
@@ -58,7 +62,11 @@ export function EntrepriseDetail({
       onError: (err) => toast.error((err as Error).message),
     })
   }
-  const decideurs = e.contacts.filter((c) => c.est_decideur)
+  // Les décideurs sont classés par pertinence « flotte mobile » : on ne garde
+  // en tête que les 3 qui comptent, le reste passe en secondaire.
+  const classes = classerDecideurs(e)
+  const principaux = classes.slice(0, 3)
+  const secondaires = classes.slice(3)
   const autres = e.contacts.filter((c) => !c.est_decideur)
   const jours = joursDepuisDernierContact(e.date_dernier_contact)
   const seg = segmentDe(e)
@@ -381,34 +389,37 @@ export function EntrepriseDetail({
 
         </section>
 
-        {/* Décideurs */}
+        {/* Décideurs — classés par pertinence flotte */}
         <section>
           <SectionTitle>
-            Décideurs à contacter {decideurs.length > 0 && `(${decideurs.length})`}
+            À contacter {principaux.length > 0 && `(${principaux.length})`}
           </SectionTitle>
-          {decideurs.length === 0 && (
+          {principaux.length === 0 && (
             <p className="rounded-md border border-amber-400/25 bg-amber-400/10 p-2.5 text-xs text-amber-300">
-              Aucun décideur identifié. À rechercher (Directeur, DG, DAF, Resp. IT/Achats) via
-              LinkedIn ou le site de l'entreprise.
+              Aucun décideur identifié. À rechercher (Resp. IT, DAF, office manager) via LinkedIn ou
+              le site de l'entreprise.
             </p>
           )}
           <div className="space-y-2">
-            {decideurs.map((c) => (
-              <ContactCard key={c.id} contact={c} entreprise={e} />
+            {principaux.map((r, i) => (
+              <ContactCard key={r.contact.id} rang={r} entreprise={e} position={i + 1} />
             ))}
           </div>
         </section>
 
-        {/* Email de prise de contact */}
-        <EmailDraft entreprise={e} decideur={decideurs[0] ?? null} />
+        {/* Brouillon de l'email, modifiable et copiable */}
+        <EmailDraft entreprise={e} decideur={principaux[0]?.contact ?? null} />
 
-        {/* Autres contacts */}
-        {autres.length > 0 && (
+        {/* Décideurs de second rang + contacts non décideurs */}
+        {(secondaires.length > 0 || autres.length > 0) && (
           <section>
-            <SectionTitle>Autres contacts ({autres.length})</SectionTitle>
+            <SectionTitle>Autres contacts ({secondaires.length + autres.length})</SectionTitle>
             <div className="space-y-2">
+              {secondaires.map((r) => (
+                <ContactCard key={r.contact.id} rang={r} entreprise={e} />
+              ))}
               {autres.map((c) => (
-                <ContactCard key={c.id} contact={c} entreprise={e} />
+                <ContactCard key={c.id} rang={{ contact: c, score: 0, categorie: 'inconnu', motif: '' }} entreprise={e} />
               ))}
             </div>
           </section>
@@ -421,31 +432,59 @@ export function EntrepriseDetail({
 // --- Sous-composants --------------------------------------------------------
 
 function ContactCard({
-  contact: c,
+  rang,
   entreprise: e,
+  position,
 }: {
-  contact: EntrepriseAvecContacts['contacts'][number]
+  rang: RangDecideur
   entreprise: EntrepriseAvecContacts
+  /** 1 = meilleure cible. Absent pour les contacts de second rang. */
+  position?: number
 }) {
+  const c = rang.contact
   const nomComplet = [c.prenom, c.nom].filter(Boolean).join(' ') || 'Contact'
-  const emailInfere = c.email
-    ? null
-    : infererEmail(c.prenom, c.nom, e, e.contacts)
+  const emailInfere = c.email ? null : infererEmail(c.prenom, c.nom, e, e.contacts)
+  const mailto = lienMailto(e, c)
 
   return (
-    <div className="rounded-md border bg-[var(--card-2)] p-2.5">
-      <div className="flex items-center justify-between">
+    <div
+      className={
+        'rounded-md border p-2.5 ' +
+        (position === 1
+          ? 'border-[color:var(--salt-soft-strong)] bg-[var(--card-2)]'
+          : 'bg-[var(--card-2)]')
+      }
+    >
+      <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <div className="text-sm font-medium">{nomComplet}</div>
+          <div className="flex items-center gap-1.5">
+            {position === 1 && (
+              <span className="rounded bg-[var(--salt-soft)] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--color-salt)]">
+                1er contact
+              </span>
+            )}
+            <span className="text-sm font-medium">{nomComplet}</span>
+          </div>
           {c.fonction && (
             <div className="truncate text-xs text-[var(--muted-foreground)]">{c.fonction}</div>
           )}
+          {position != null && rang.motif && (
+            <div className="mt-0.5 text-[11px] text-[var(--muted-foreground)]">{rang.motif}</div>
+          )}
         </div>
-        {c.linkedin && (
-          <a href={c.linkedin} target="_blank" rel="noreferrer" className="text-[var(--muted-foreground)] hover:text-[var(--color-salt)]">
-            <Link2 className="h-4 w-4" />
-          </a>
-        )}
+        <div className="flex shrink-0 items-center gap-1.5">
+          {c.linkedin && (
+            <a
+              href={c.linkedin}
+              target="_blank"
+              rel="noreferrer"
+              title="Profil LinkedIn"
+              className="text-[var(--muted-foreground)] hover:text-[var(--color-salt)]"
+            >
+              <Link2 className="h-4 w-4" />
+            </a>
+          )}
+        </div>
       </div>
 
       {c.email ? (
@@ -454,6 +493,20 @@ function ContactCard({
         <EmailLigne email={emailInfere.email} verifie={false} confiance={emailInfere.confiance} />
       ) : (
         <div className="mt-1.5 text-xs text-[var(--muted-foreground)]">Email inconnu</div>
+      )}
+
+      {mailto ? (
+        <a
+          href={mailto}
+          className="btn-salt press mt-2 inline-flex w-full items-center justify-center gap-1.5 px-2.5 py-1.5 text-xs"
+        >
+          <Send className="h-3.5 w-3.5" />
+          Écrire à {c.prenom || nomComplet}
+        </a>
+      ) : (
+        <div className="mt-2 rounded-md border border-dashed border-[var(--border-strong)] px-2.5 py-1.5 text-center text-[11px] text-[var(--muted-foreground)]">
+          Ajoute l'adresse email pour activer l'envoi
+        </div>
       )}
     </div>
   )
@@ -514,9 +567,9 @@ function EmailDraft({
   decideur: EntrepriseAvecContacts['contacts'][number] | null
 }) {
   const [copied, setCopied] = useState(false)
-  const prenom = decideur?.prenom ?? ''
-  const objet = `Salt Business — optimiser la téléphonie mobile de ${e.nom}`
-  const corps = genererEmail(e, prenom)
+  const [ouvert, setOuvert] = useState(false)
+  const objet = objetEmail(e)
+  const corps = corpsEmail(e, decideur)
 
   function copier() {
     navigator.clipboard.writeText(`Objet : ${objet}\n\n${corps}`)
@@ -528,11 +581,18 @@ function EmailDraft({
   return (
     <section>
       <SectionTitle>
-        <span className="inline-flex items-center gap-1.5">
+        <button
+          onClick={() => setOuvert((v) => !v)}
+          className="inline-flex items-center gap-1.5 uppercase tracking-wide hover:text-[var(--foreground)]"
+        >
           <Sparkles className="h-3.5 w-3.5 text-[var(--color-salt)]" />
-          Brouillon email — 1er RDV
-        </span>
+          Aperçu de l'email
+          <ChevronDown
+            className={'h-3.5 w-3.5 transition-transform ' + (ouvert ? 'rotate-180' : '')}
+          />
+        </button>
       </SectionTitle>
+      {!ouvert ? null : (
       <div className="overflow-hidden rounded-xl border border-[var(--border-strong)] bg-[var(--card-2)]">
         <div className="flex items-center justify-between gap-2 border-b border-[var(--border)] bg-[var(--card)] px-3 py-2">
           <div className="min-w-0">
@@ -551,6 +611,7 @@ function EmailDraft({
           {corps}
         </pre>
       </div>
+      )}
     </section>
   )
 }
@@ -614,23 +675,4 @@ function typologieLabel(t: EntrepriseAvecContacts['typologie']): string {
     prospect_blue: 'Prospect Blue',
     client_existant: 'Client existant',
   }[t]
-}
-
-function genererEmail(e: EntrepriseAvecContacts, prenom: string): string {
-  const salutation = prenom ? `Bonjour ${prenom},` : 'Bonjour,'
-  const tailleMention =
-    e.taille_employes != null
-      ? `Avec vos ${e.taille_employes} collaborateurs, `
-      : 'Pour une équipe de votre taille, '
-  return `${salutation}
-
-Je suis conseiller Business chez Salt à Genève. ${tailleMention}la maîtrise des coûts et de la qualité de la téléphonie mobile est souvent un levier d'économies et de simplicité sous-estimé.
-
-Nous accompagnons les entreprises de la région (Genève et La Côte) sur leurs lignes mobiles professionnelles : forfaits adaptés, couverture, et un interlocuteur dédié.
-
-Seriez-vous disponible pour un court échange de 15 minutes dans les prochains jours ? Je vous propose de vous montrer concrètement ce que cela pourrait représenter pour ${e.nom}.
-
-Bien cordialement,
-Alexis Duret
-Salt Business — Genève`
 }
