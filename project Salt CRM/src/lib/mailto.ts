@@ -17,9 +17,16 @@ import type { EntrepriseAvecContacts } from './database.types'
 
 type Contact = EntrepriseAvecContacts['contacts'][number]
 
-export const SIGNATURE = `Alexis Duret
-Salt Business
-alexis.duret@salt.ch`
+// Un lien `mailto:` ne transporte que du texte brut : les logos et les badges
+// « connect » / « Best Wi-Fi Performance » ne peuvent pas y passer. Si ton
+// client mail ajoute déjà sa propre signature (avec les images), passe cette
+// constante à `null` pour éviter de l'avoir en double.
+export const SIGNATURE: string | null = `Alexis Duret
+Account Manager
+
++41 78 787 46 68
+alexis.duret@salt.ch
+Salt Mobile SA, Avenue de Malley 2, CH-1008 Prilly, Switzerland`
 
 export function objetEmail(e: EntrepriseAvecContacts): string {
   return `Flotte mobile ${e.nom} — proposition de rendez-vous`
@@ -67,13 +74,12 @@ export function corpsEmail(e: EntrepriseAvecContacts, contact: Contact | null): 
 
   return `${salutation}
 
-Conseiller Business chez Salt, je vous écris car nous venons de lancer une nouvelle offre mobile pour les entreprises. ${accroche}
+Account Manager chez Salt Business, je vous écris car nous venons de lancer une nouvelle offre mobile pour les entreprises. ${accroche}
 
 Êtes-vous la bonne personne pour en parler, ou dois-je m'adresser à quelqu'un d'autre ?
 
 Avec mes meilleures salutations,
-
-${SIGNATURE}`
+${SIGNATURE ? `\n${SIGNATURE}` : ''}`
 }
 
 /**
