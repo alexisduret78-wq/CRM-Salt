@@ -49,6 +49,10 @@ export interface Contact {
   email: string | null
   telephone: string | null
   linkedin: string | null
+  // « Monsieur » / « Madame ». Sert à ouvrir l'email sur « Bonjour Monsieur X ».
+  // Null quand on ne sait pas : on se rabat alors sur prénom + nom, plutôt que
+  // de risquer une civilité fausse.
+  civilite: string | null
   est_decideur: boolean | null
   source_fichier: string | null
   created_at: string

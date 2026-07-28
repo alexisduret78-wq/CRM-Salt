@@ -10,17 +10,18 @@
 //   2. On demande si l'interlocuteur est le bon plutôt qu'un rendez-vous.
 //      Un « non, voyez avec X » est un gain : c'est une recommandation
 //      interne, et le mail suivant n'est plus un mail à froid.
-//   3. L'effectif n'est cité que si le chiffre est fiable — se tromper
-//      dessus décrédibilise tout le reste du message.
+//   3. L'effectif est cité en ordre de grandeur, jamais au chiffre près —
+//      beaucoup viennent de tranches d'import, pas d'un comptage réel.
 
 import type { EntrepriseAvecContacts } from './database.types'
 
 type Contact = EntrepriseAvecContacts['contacts'][number]
 
-// Un lien `mailto:` ne transporte que du texte brut : les logos et les badges
-// « connect » / « Best Wi-Fi Performance » ne peuvent pas y passer. Si ton
-// client mail ajoute déjà sa propre signature (avec les images), passe cette
-// constante à `null` pour éviter de l'avoir en double.
+// Un mailto ne transporte que du texte brut : les badges « connect » /
+// « Best Wi-Fi » et le logo Salt Business ne peuvent pas y passer. Et comme le
+// paramètre `body` est renseigné, la plupart des clients mail n'ajoutent pas
+// leur signature automatique — d'où cette version texte. Passer à `null` si le
+// client finit par l'ajouter quand même, pour éviter le doublon.
 export const SIGNATURE: string | null = `Alexis Duret
 Account Manager
 
@@ -29,15 +30,27 @@ alexis.duret@salt.ch
 Salt Mobile SA, Avenue de Malley 2, CH-1008 Prilly, Switzerland`
 
 export function objetEmail(e: EntrepriseAvecContacts): string {
-  return `Flotte mobile ${e.nom} — proposition de rendez-vous`
+  return `Salt Business - ${e.nom}`
+}
+
+/**
+ * « Bonjour Monsieur Cresson, » quand la civilité est connue.
+ * Sinon prénom + nom : une civilité fausse coûte plus cher qu'une formule
+ * un peu neutre, et on ne devine pas le genre à partir d'un prénom.
+ */
+function salutation(contact: Contact | null): string {
+  const nom = contact?.nom?.trim()
+  const civ = contact?.civilite?.trim()
+  if (civ && nom) return `Bonjour ${civ} ${nom},`
+  const complet = [contact?.prenom, contact?.nom].filter(Boolean).join(' ').trim()
+  return complet ? `Bonjour ${complet},` : 'Madame, Monsieur,'
 }
 
 /**
  * Beaucoup d'effectifs viennent de tranches d'import, pas d'un comptage réel —
  * l'audit a par exemple trouvé Somatra à 60 dans la base pour une vingtaine de
- * personnes en vrai. On ne cite donc jamais le chiffre exact : on l'ancre sur
- * le plancher de sa tranche, avec un « plus de » qui reste vrai même si
- * l'estimation est un peu haute.
+ * personnes en vrai. On ancre donc sur le plancher de la tranche, avec un
+ * « plus de » qui reste vrai même si l'estimation est un peu haute.
  */
 function effectifApprox(n: number | null): string | null {
   if (n == null || n < 20) return null // trop petit pour que la formule sonne juste
@@ -47,12 +60,9 @@ function effectifApprox(n: number | null): string | null {
   return 'plusieurs centaines de collaborateurs'
 }
 
-/**
- * « de Serbeco » mais « d'Amstein + Walthert ».
- * Le h est volontairement exclu : on ne sait pas s'il est muet ou aspiré
- * (« d'Helvetia » mais « de Hammel »), et « de » n'est jamais fautif devant
- * un nom propre.
- */
+/** « de Serbeco » mais « d'Amstein + Walthert ». Le h est exclu : on ne sait
+ *  pas s'il est muet ou aspiré, et « de » n'est jamais fautif devant un nom
+ *  propre. */
 function de(nom: string): string {
   const p = nom
     .trim()
@@ -64,17 +74,14 @@ function de(nom: string): string {
 }
 
 export function corpsEmail(e: EntrepriseAvecContacts, contact: Contact | null): string {
-  const nom = [contact?.prenom, contact?.nom].filter(Boolean).join(' ').trim()
-  const salutation = nom ? `Bonjour ${nom},` : 'Madame, Monsieur,'
-
   const taille = effectifApprox(e.taille_employes)
   const accroche = taille
     ? `Avec ${taille}, une comparaison avec le contrat actuel ${de(e.nom)} vaut probablement le détour.`
     : `Une comparaison avec le contrat actuel ${de(e.nom)} vaut probablement le détour.`
 
-  return `${salutation}
+  return `${salutation(contact)}
 
-Account Manager chez Salt Business, je vous écris car nous venons de lancer une nouvelle offre mobile pour les entreprises. ${accroche}
+Je me permets de vous écrire car nous venons de lancer une nouvelle offre de téléphonie mobile pour les entreprises. ${accroche}
 
 Êtes-vous la bonne personne pour en parler, ou dois-je m'adresser à quelqu'un d'autre ?
 
