@@ -26,22 +26,44 @@ export function objetEmail(e: EntrepriseAvecContacts): string {
 }
 
 /**
- * Un effectif rond (50, 100, 200…) vient presque toujours d'une tranche
- * d'import, pas d'un comptage réel. On ne cite le chiffre que s'il porte la
- * marque d'un vrai décompte — mieux vaut ne rien dire que dire faux.
+ * Beaucoup d'effectifs viennent de tranches d'import, pas d'un comptage réel —
+ * l'audit a par exemple trouvé Somatra à 60 dans la base pour une vingtaine de
+ * personnes en vrai. On ne cite donc jamais le chiffre exact : on l'ancre sur
+ * le plancher de sa tranche, avec un « plus de » qui reste vrai même si
+ * l'estimation est un peu haute.
  */
-function effectifFiable(n: number | null): boolean {
-  if (n == null || n <= 0) return false
-  return n % 10 !== 0
+function effectifApprox(n: number | null): string | null {
+  if (n == null || n < 20) return null // trop petit pour que la formule sonne juste
+  if (n < 50) return "plus d'une vingtaine de collaborateurs"
+  if (n < 100) return "plus d'une cinquantaine de collaborateurs"
+  if (n < 250) return "plus d'une centaine de collaborateurs"
+  return 'plusieurs centaines de collaborateurs'
+}
+
+/**
+ * « de Serbeco » mais « d'Amstein + Walthert ».
+ * Le h est volontairement exclu : on ne sait pas s'il est muet ou aspiré
+ * (« d'Helvetia » mais « de Hammel »), et « de » n'est jamais fautif devant
+ * un nom propre.
+ */
+function de(nom: string): string {
+  const p = nom
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .charAt(0)
+  return 'aeiouy'.includes(p) ? `d'${nom}` : `de ${nom}`
 }
 
 export function corpsEmail(e: EntrepriseAvecContacts, contact: Contact | null): string {
   const nom = [contact?.prenom, contact?.nom].filter(Boolean).join(' ').trim()
   const salutation = nom ? `Bonjour ${nom},` : 'Madame, Monsieur,'
 
-  const accroche = effectifFiable(e.taille_employes)
-    ? `Avec vos ${e.taille_employes} collaborateurs, une comparaison avec le contrat actuel de ${e.nom} vaut probablement le détour.`
-    : `Une comparaison avec le contrat actuel de ${e.nom} vaut probablement le détour.`
+  const taille = effectifApprox(e.taille_employes)
+  const accroche = taille
+    ? `Avec ${taille}, une comparaison avec le contrat actuel ${de(e.nom)} vaut probablement le détour.`
+    : `Une comparaison avec le contrat actuel ${de(e.nom)} vaut probablement le détour.`
 
   return `${salutation}
 
