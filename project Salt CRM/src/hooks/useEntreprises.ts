@@ -86,6 +86,40 @@ export function useUpdateEntreprise() {
   })
 }
 
+// Correction d'un contact (adresse email, civilité…) directement depuis la
+// fiche. Beaucoup d'adresses sont reconstruites à partir d'un format probable :
+// il faut pouvoir les rectifier dès qu'on découvre la vraie.
+export type PatchContact = Partial<
+  Pick<EntrepriseAvecContacts['contacts'][number], 'email' | 'telephone' | 'civilite' | 'fonction'>
+>
+
+export function useUpdateContact() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, patch }: { id: string; patch: PatchContact }) => {
+      const { error } = await supabase.from('contacts').update(patch).eq('id', id)
+      if (error) throw error
+    },
+    onMutate: async ({ id, patch }) => {
+      await qc.cancelQueries({ queryKey: ['entreprises'] })
+      const prev = qc.getQueryData<EntrepriseAvecContacts[]>(['entreprises'])
+      qc.setQueryData<EntrepriseAvecContacts[]>(['entreprises'], (old) =>
+        (old ?? []).map((e) => ({
+          ...e,
+          contacts: e.contacts.map((c) => (c.id === id ? { ...c, ...patch } : c)),
+        }))
+      )
+      return { prev }
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) qc.setQueryData(['entreprises'], ctx.prev)
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['entreprises'] })
+    },
+  })
+}
+
 // Suppression (une ou plusieurs entreprises) — supprime d'abord les décideurs
 // liés, puis les entreprises. MAJ optimiste : disparaissent tout de suite.
 export function useDeleteEntreprises() {

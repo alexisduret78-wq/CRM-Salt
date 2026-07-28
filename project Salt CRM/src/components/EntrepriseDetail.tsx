@@ -19,6 +19,7 @@ import {
   Ban,
   Send,
   ChevronDown,
+  Pencil,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { EntrepriseAvecContacts } from '@/lib/database.types'
@@ -36,7 +37,7 @@ import {
 import { infererEmail } from '@/lib/email'
 import { classerDecideurs, type RangDecideur } from '@/lib/decideurs'
 import { objetEmail, corpsEmail, lienMailto, ecrireA } from '@/lib/mailto'
-import { useUpdateEntreprise, useDeleteEntreprises } from '@/hooks/useEntreprises'
+import { useUpdateEntreprise, useDeleteEntreprises, useUpdateContact } from '@/hooks/useEntreprises'
 import { CouleurBadge, TierBadge, UidBadge, SiegeBadge, FlotteBadge } from '@/components/badges'
 import { flotteInfo } from '@/lib/flotte'
 
@@ -487,13 +488,7 @@ function ContactCard({
         </div>
       </div>
 
-      {c.email ? (
-        <EmailLigne email={c.email} verifie />
-      ) : emailInfere ? (
-        <EmailLigne email={emailInfere.email} verifie={false} confiance={emailInfere.confiance} />
-      ) : (
-        <div className="mt-1.5 text-xs text-[var(--muted-foreground)]">Email inconnu</div>
-      )}
+      <EmailEditable contact={c} suggestion={emailInfere} />
 
       {mailto ? (
         <button
@@ -515,14 +510,111 @@ function ContactCard({
   )
 }
 
+/**
+ * Adresse email d'un contact, corrigeable sur place.
+ *
+ * Beaucoup d'adresses sont reconstruites à partir d'un format seulement
+ * probable : dès qu'on découvre la vraie — un rebond, une réponse, une page
+ * équipe — il faut pouvoir la rectifier sans passer par du SQL.
+ */
+function EmailEditable({
+  contact: c,
+  suggestion,
+}: {
+  contact: EntrepriseAvecContacts['contacts'][number]
+  suggestion: { email: string; confiance: 'observe' | 'standard' } | null
+}) {
+  const update = useUpdateContact()
+  const [edition, setEdition] = useState(false)
+  const [valeur, setValeur] = useState(c.email ?? suggestion?.email ?? '')
+
+  function enregistrer() {
+    const v = valeur.trim()
+    if (v && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) {
+      toast.error('Adresse invalide')
+      return
+    }
+    update.mutate(
+      { id: c.id, patch: { email: v || null } },
+      {
+        onSuccess: () => toast.success(v ? 'Adresse enregistrée' : 'Adresse effacée'),
+        onError: (err) => toast.error((err as Error).message),
+      }
+    )
+    setEdition(false)
+  }
+
+  if (edition) {
+    return (
+      <div className="mt-1.5 flex items-center gap-1.5">
+        <Mail className="h-3.5 w-3.5 shrink-0 text-[var(--muted-foreground)]" />
+        <input
+          autoFocus
+          value={valeur}
+          onChange={(ev) => setValeur(ev.target.value)}
+          onKeyDown={(ev) => {
+            if (ev.key === 'Enter') enregistrer()
+            if (ev.key === 'Escape') {
+              setValeur(c.email ?? suggestion?.email ?? '')
+              setEdition(false)
+            }
+          }}
+          placeholder="prenom.nom@entreprise.ch"
+          className="min-w-0 flex-1 rounded border bg-[var(--background)] px-1.5 py-1 text-xs outline-none focus:border-[var(--color-salt)]"
+        />
+        <button
+          onClick={enregistrer}
+          title="Enregistrer (Entrée)"
+          className="shrink-0 rounded p-1 text-[var(--color-salt)] hover:bg-[var(--muted)]"
+        >
+          <Check className="h-3.5 w-3.5" />
+        </button>
+        <button
+          onClick={() => {
+            setValeur(c.email ?? suggestion?.email ?? '')
+            setEdition(false)
+          }}
+          title="Annuler (Échap)"
+          className="shrink-0 rounded p-1 text-[var(--muted-foreground)] hover:bg-[var(--muted)]"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
+      </div>
+    )
+  }
+
+  if (!c.email && !suggestion) {
+    return (
+      <button
+        onClick={() => setEdition(true)}
+        className="mt-1.5 inline-flex items-center gap-1.5 text-xs text-[var(--muted-foreground)] hover:text-[var(--color-salt)]"
+      >
+        <Mail className="h-3.5 w-3.5" />
+        Ajouter une adresse
+      </button>
+    )
+  }
+
+  return (
+    <EmailLigne
+      email={c.email ?? suggestion!.email}
+      verifie={!!c.email}
+      confiance={suggestion?.confiance}
+      onEdit={() => setEdition(true)}
+    />
+  )
+}
+
 function EmailLigne({
   email,
   verifie,
   confiance,
+  onEdit,
 }: {
   email: string
   verifie: boolean
   confiance?: 'observe' | 'standard'
+  onEdit?: () => void
 }) {
   const [copied, setCopied] = useState(false)
   return (
@@ -558,6 +650,15 @@ function EmailLigne({
           <Copy className="h-3.5 w-3.5" />
         )}
       </button>
+      {onEdit && (
+        <button
+          onClick={onEdit}
+          className="text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+          title="Corriger l'adresse"
+        >
+          <Pencil className="h-3.5 w-3.5" />
+        </button>
+      )}
     </div>
   )
 }
