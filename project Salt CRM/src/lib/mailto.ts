@@ -17,12 +17,13 @@ import type { EntrepriseAvecContacts } from './database.types'
 
 type Contact = EntrepriseAvecContacts['contacts'][number]
 
-// Un mailto ne transporte que du texte brut : les badges « connect » /
-// « Best Wi-Fi » et le logo Salt Business ne peuvent pas y passer. Et comme le
-// paramètre `body` est renseigné, la plupart des clients mail n'ajoutent pas
-// leur signature automatique — d'où cette version texte. Passer à `null` si le
-// client finit par l'ajouter quand même, pour éviter le doublon.
-export const SIGNATURE: string | null = `Alexis Duret
+// `null` par défaut : le bouton « Écrire à X » ouvre le client SANS corps, donc
+// la vraie signature Salt — avec les badges et le logo — s'insère normalement,
+// et le texte se colle par-dessus. Y remettre la version texte ci-dessous
+// seulement si le client n'ajoute rien, pour ne pas partir sans signature.
+export const SIGNATURE: string | null = null
+
+export const SIGNATURE_TEXTE = `Alexis Duret
 Account Manager
 
 +41 78 787 46 68
@@ -90,18 +91,38 @@ ${SIGNATURE ? `\n${SIGNATURE}` : ''}`
 }
 
 /**
- * Construit le lien `mailto:` qui ouvre le client mail de l'utilisateur avec
- * l'objet et le corps déjà remplis. Retourne null si le contact n'a pas
- * d'adresse — inutile de proposer un bouton qui n'enverrait nulle part.
+ * Lien `mailto:` avec destinataire et objet, mais SANS corps.
+ *
+ * C'est le paramètre `body` qui fait sauter la signature automatique : le
+ * client considère alors le message déjà composé et n'insère rien. En le
+ * laissant de côté, la vraie signature — avec les badges et le logo — arrive
+ * normalement, et le corps se colle par-dessus (cf. `ecrireA`).
  */
 export function lienMailto(e: EntrepriseAvecContacts, contact: Contact | null): string | null {
   const to = contact?.email?.trim()
   if (!to) return null
-  const params = new URLSearchParams({
-    subject: objetEmail(e),
-    body: corpsEmail(e, contact),
-  })
-  // URLSearchParams encode l'espace en « + », que les clients mail
-  // interprètent littéralement dans un corps de message.
+  const params = new URLSearchParams({ subject: objetEmail(e) })
   return `mailto:${encodeURIComponent(to)}?${params.toString().replace(/\+/g, '%20')}`
+}
+
+/**
+ * Copie le corps du message puis ouvre le client mail. Deux temps volontaires :
+ * le presse-papier porte le texte, le mailto porte le destinataire et l'objet
+ * sans écraser la signature. Il reste un Ctrl+V à faire, en échange d'une
+ * signature complète.
+ */
+export async function ecrireA(
+  e: EntrepriseAvecContacts,
+  contact: Contact | null
+): Promise<boolean> {
+  const lien = lienMailto(e, contact)
+  if (!lien) return false
+  try {
+    await navigator.clipboard.writeText(corpsEmail(e, contact))
+  } catch {
+    // Presse-papier refusé (permission, contexte non sécurisé) : on ouvre
+    // quand même le client, l'aperçu de la fiche reste copiable à la main.
+  }
+  window.location.href = lien
+  return true
 }

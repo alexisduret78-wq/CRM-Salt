@@ -35,7 +35,7 @@ import {
 } from '@/lib/estimation'
 import { infererEmail } from '@/lib/email'
 import { classerDecideurs, type RangDecideur } from '@/lib/decideurs'
-import { objetEmail, corpsEmail, lienMailto } from '@/lib/mailto'
+import { objetEmail, corpsEmail, lienMailto, ecrireA } from '@/lib/mailto'
 import { useUpdateEntreprise, useDeleteEntreprises } from '@/hooks/useEntreprises'
 import { CouleurBadge, TierBadge, UidBadge, SiegeBadge, FlotteBadge } from '@/components/badges'
 import { flotteInfo } from '@/lib/flotte'
@@ -496,13 +496,16 @@ function ContactCard({
       )}
 
       {mailto ? (
-        <a
-          href={mailto}
+        <button
+          onClick={async () => {
+            await ecrireA(e, c)
+            toast.success('Texte copié — colle-le avec Ctrl+V au-dessus de ta signature')
+          }}
           className="btn-salt press mt-2 inline-flex w-full items-center justify-center gap-1.5 px-2.5 py-1.5 text-xs"
         >
           <Send className="h-3.5 w-3.5" />
           Écrire à {c.prenom || nomComplet}
-        </a>
+        </button>
       ) : (
         <div className="mt-2 rounded-md border border-dashed border-[var(--border-strong)] px-2.5 py-1.5 text-center text-[11px] text-[var(--muted-foreground)]">
           Ajoute l'adresse email pour activer l'envoi
