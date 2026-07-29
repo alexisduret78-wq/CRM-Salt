@@ -47,6 +47,7 @@ type SourceFiltre =
   | 'areprospect'
   | 'pretes'
   | 'reprospect'
+  | 'arelancer'
   | 'invalides'
 type TierFiltre = 'tous' | 'A' | 'B' | 'C'
 type FlotteFiltre = 'tous' | 'cible' | 'qualifier' | 'faible'
@@ -125,8 +126,11 @@ export default function Prospection() {
       // entreprises déjà connues → « Prête à re-prospecter ».
       if (source === 'pretes' && !(e.pamela_valide && estDecouverte(e))) return false
       if (source === 'reprospect' && !(e.pamela_valide && !estDecouverte(e))) return false
+      // « À relancer par mail » : contactées, en attente de réponse.
+      if (source === 'arelancer' && !e.date_dernier_contact) return false
       if (masquerClients && e.couleur === 'vert') return false
-      if (masquerContactees && e.date_dernier_contact) return false
+      // Le masquage ne s'applique pas à la liste qui les rassemble.
+      if (masquerContactees && source !== 'arelancer' && e.date_dernier_contact) return false
       if (zoneUniquement && !estDansZone(e)) return false
       return true
     })
@@ -159,11 +163,13 @@ export default function Prospection() {
     let areprospect = 0
     let fichiers = 0
     let invalides = 0
+    let arelancer = 0
     for (const { entreprise: e } of base) {
       if (e.indisponible) {
         invalides++
         continue // mise de côté, hors listes de travail
       }
+      if (e.date_dernier_contact) arelancer++
       if (e.pamela_valide) {
         if (estDecouverte(e)) pretes++
         else reprospect++
@@ -171,7 +177,7 @@ export default function Prospection() {
       else if (estReprospect(e)) areprospect++
       else fichiers++
     }
-    return { pretes, reprospect, claude, areprospect, fichiers, invalides, toutes: base.length }
+    return { pretes, reprospect, claude, areprospect, fichiers, invalides, arelancer, toutes: base.length }
   }, [scorees, masquerClients, zoneUniquement])
 
   const kpis = useMemo(
@@ -363,6 +369,23 @@ export default function Prospection() {
             <span className="flex-1 text-left">Prête à re-prospecter</span>
             <span className="rounded-full bg-[var(--color-salt)] px-1.5 py-0.5 text-[10px] font-bold tabular text-[var(--color-salt-ink)]">
               {compteSource.reprospect}
+            </span>
+          </button>
+
+          {/* À relancer par mail — contactées, en attente de réponse */}
+          <button
+            onClick={() => setSource('arelancer')}
+            className={
+              'press flex w-full items-center gap-2 rounded-lg border px-2.5 py-2 text-sm font-medium ' +
+              (source === 'arelancer'
+                ? 'border-amber-400/60 bg-amber-400/15 text-amber-200'
+                : 'border-amber-400/25 bg-amber-400/5 text-amber-300/80 hover:bg-amber-400/10')
+            }
+          >
+            <Bell className="h-4 w-4" />
+            <span className="flex-1 text-left">À relancer par mail</span>
+            <span className="rounded-full bg-amber-400/20 px-1.5 py-0.5 text-[10px] font-bold tabular text-amber-200">
+              {compteSource.arelancer}
             </span>
           </button>
 
@@ -835,6 +858,11 @@ function EmptyState({
       icon: <RefreshCw className="h-6 w-6 text-[var(--color-salt)]" />,
       titre: 'Aucun candidat à re-prospecter',
       sous: 'Les entreprises déjà connues retenues pour une relance (≥20 lignes, ≤500 empl.) apparaissent ici. Lance le script de tag si la liste est vide.',
+    },
+    arelancer: {
+      icon: <Bell className="h-6 w-6 text-amber-300" />,
+      titre: 'Aucune entreprise à relancer',
+      sous: 'Après un envoi, clique sur « Marquer contactée aujourd’hui » dans la fiche : elle arrivera ici en attente de réponse.',
     },
     invalides: {
       icon: <Ban className="h-6 w-6 text-red-300" />,
