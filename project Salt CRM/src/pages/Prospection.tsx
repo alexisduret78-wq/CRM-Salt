@@ -18,6 +18,7 @@ import {
   Rocket,
   RefreshCw,
   Ban,
+  CalendarCheck,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useEntreprises, useUpdateEntreprise, useDeleteEntreprises } from '@/hooks/useEntreprises'
@@ -73,6 +74,11 @@ export default function Prospection() {
   const [tier, setTier] = useState<TierFiltre>('tous')
   const [flotte, setFlotte] = useState<FlotteFiltre>('tous')
   const [masquerClients, setMasquerClients] = useState(true)
+  // Une fois le mail parti, l'entreprise n'a plus rien à faire dans la liste de
+  // travail : sans ça, après vingt envois on ne sait plus lesquelles restent.
+  const [masquerContactees, setMasquerContactees] = useState(
+    () => (typeof localStorage !== 'undefined' ? localStorage.getItem('salt-masquer-contactees') === '1' : false)
+  )
   const [tri, setTri] = useState<Tri>('priorite')
   const [railOuvert, setRailOuvert] = useState(
     () => (typeof localStorage !== 'undefined' ? localStorage.getItem('salt-rail-ouvert') !== '0' : true)
@@ -120,10 +126,11 @@ export default function Prospection() {
       if (source === 'pretes' && !(e.pamela_valide && estDecouverte(e))) return false
       if (source === 'reprospect' && !(e.pamela_valide && !estDecouverte(e))) return false
       if (masquerClients && e.couleur === 'vert') return false
+      if (masquerContactees && e.date_dernier_contact) return false
       if (zoneUniquement && !estDansZone(e)) return false
       return true
     })
-  }, [scorees, source, masquerClients, zoneUniquement])
+  }, [scorees, source, masquerClients, masquerContactees, zoneUniquement])
 
   const segments = useMemo(() => {
     const s = new Set<string>()
@@ -499,6 +506,13 @@ export default function Prospection() {
               </Toggle>
               <Toggle checked={masquerClients} onChange={setMasquerClients}>
                 Masquer clients
+              </Toggle>
+              <Toggle
+                checked={masquerContactees}
+                onChange={setMasquerContactees}
+                icon={<CalendarCheck className="h-3.5 w-3.5" />}
+              >
+                Masquer déjà contactées
               </Toggle>
             </div>
 
