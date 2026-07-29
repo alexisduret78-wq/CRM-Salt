@@ -18,7 +18,6 @@ import {
   Rocket,
   RefreshCw,
   Ban,
-  CalendarCheck,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useEntreprises, useUpdateEntreprise, useDeleteEntreprises } from '@/hooks/useEntreprises'
@@ -75,11 +74,6 @@ export default function Prospection() {
   const [tier, setTier] = useState<TierFiltre>('tous')
   const [flotte, setFlotte] = useState<FlotteFiltre>('tous')
   const [masquerClients, setMasquerClients] = useState(true)
-  // Une fois le mail parti, l'entreprise n'a plus rien à faire dans la liste de
-  // travail : sans ça, après vingt envois on ne sait plus lesquelles restent.
-  const [masquerContactees, setMasquerContactees] = useState(
-    () => (typeof localStorage !== 'undefined' ? localStorage.getItem('salt-masquer-contactees') === '1' : false)
-  )
   const [tri, setTri] = useState<Tri>('priorite')
   const [railOuvert, setRailOuvert] = useState(
     () => (typeof localStorage !== 'undefined' ? localStorage.getItem('salt-rail-ouvert') !== '0' : true)
@@ -126,15 +120,17 @@ export default function Prospection() {
       // entreprises déjà connues → « Prête à re-prospecter ».
       if (source === 'pretes' && !(e.pamela_valide && estDecouverte(e))) return false
       if (source === 'reprospect' && !(e.pamela_valide && !estDecouverte(e))) return false
-      // « À relancer par mail » : contactées, en attente de réponse.
+      // Une entreprise n'apparaît que dans UNE liste à la fois. Dès qu'elle est
+      // contactée, elle quitte les listes de travail pour « À relancer par mail ».
+      // « Toutes » reste la vue exhaustive.
       if (source === 'arelancer' && !e.date_dernier_contact) return false
+      if (source !== 'arelancer' && source !== 'toutes' && source !== 'invalides' && e.date_dernier_contact)
+        return false
       if (masquerClients && e.couleur === 'vert') return false
-      // Le masquage ne s'applique pas à la liste qui les rassemble.
-      if (masquerContactees && source !== 'arelancer' && e.date_dernier_contact) return false
       if (zoneUniquement && !estDansZone(e)) return false
       return true
     })
-  }, [scorees, source, masquerClients, masquerContactees, zoneUniquement])
+  }, [scorees, source, masquerClients, zoneUniquement])
 
   const segments = useMemo(() => {
     const s = new Set<string>()
@@ -169,7 +165,10 @@ export default function Prospection() {
         invalides++
         continue // mise de côté, hors listes de travail
       }
-      if (e.date_dernier_contact) arelancer++
+      if (e.date_dernier_contact) {
+        arelancer++
+        continue // comptée dans « À relancer », plus dans les listes de travail
+      }
       if (e.pamela_valide) {
         if (estDecouverte(e)) pretes++
         else reprospect++
@@ -529,13 +528,6 @@ export default function Prospection() {
               </Toggle>
               <Toggle checked={masquerClients} onChange={setMasquerClients}>
                 Masquer clients
-              </Toggle>
-              <Toggle
-                checked={masquerContactees}
-                onChange={setMasquerContactees}
-                icon={<CalendarCheck className="h-3.5 w-3.5" />}
-              >
-                Masquer déjà contactées
               </Toggle>
             </div>
 
