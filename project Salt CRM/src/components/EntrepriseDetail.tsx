@@ -63,11 +63,11 @@ export function EntrepriseDetail({
       onError: (err) => toast.error((err as Error).message),
     })
   }
-  // Les décideurs sont classés par pertinence « flotte mobile » : on ne garde
-  // en tête que les 3 qui comptent, le reste passe en secondaire.
+  // Deux décideurs par entreprise, pas plus : un point d'entrée opérationnel
+  // et un décideur budgétaire. Le reste passe en contacts secondaires.
   const classes = classerDecideurs(e)
-  const principaux = classes.slice(0, 3)
-  const secondaires = classes.slice(3)
+  const principaux = classes.slice(0, 2)
+  const secondaires = classes.slice(2)
   const autres = e.contacts.filter((c) => !c.est_decideur)
   const jours = joursDepuisDernierContact(e.date_dernier_contact)
   const seg = segmentDe(e)
@@ -393,7 +393,21 @@ export function EntrepriseDetail({
         {/* Décideurs — classés par pertinence flotte */}
         <section>
           <SectionTitle>
-            À contacter {principaux.length > 0 && `(${principaux.length})`}
+            <span className="inline-flex items-center gap-1.5">
+              À contacter
+              {principaux.length === 2 ? (
+                <span className="rounded bg-[var(--salt-soft)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--color-salt)]">
+                  2 / 2
+                </span>
+              ) : (
+                <span
+                  className="rounded bg-amber-400/10 px-1.5 py-0.5 text-[10px] font-semibold text-amber-300"
+                  title="Objectif : deux décideurs par entreprise"
+                >
+                  {principaux.length} / 2
+                </span>
+              )}
+            </span>
           </SectionTitle>
           {principaux.length === 0 && (
             <p className="rounded-md border border-amber-400/25 bg-amber-400/10 p-2.5 text-xs text-amber-300">

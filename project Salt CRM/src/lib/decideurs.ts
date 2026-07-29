@@ -166,7 +166,7 @@ export function classerDecideurs(e: EntrepriseAvecContacts): RangDecideur[] {
     .sort((a, b) => b.score - a.score)
 }
 
-/** Les 2 à 3 contacts à réellement travailler. */
-export function meilleursDecideurs(e: EntrepriseAvecContacts, max = 3): RangDecideur[] {
+/** Les 2 contacts à réellement travailler. */
+export function meilleursDecideurs(e: EntrepriseAvecContacts, max = 2): RangDecideur[] {
   return classerDecideurs(e).slice(0, max)
 }
