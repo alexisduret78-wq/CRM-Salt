@@ -124,6 +124,8 @@ export function useUpdateContact() {
 // pas tout : quand un appel donne un nom, il faut pouvoir l'inscrire.
 export interface NouveauContact {
   entreprise_id: string
+  /** Repli si la session ne renvoie pas d'utilisateur : celui de l'entreprise. */
+  user_id?: string | null
   prenom: string
   nom: string
   fonction?: string | null
@@ -137,9 +139,21 @@ export function useCreateContact() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (c: NouveauContact) => {
+      // La policy RLS impose `auth.uid() = user_id`. Sans ce champ la ligne est
+      // rejetée, donc on le renseigne depuis la session — en se rabattant sur
+      // le user_id de l'entreprise parente, qui est forcément le même.
+      const { data: session } = await supabase.auth.getSession()
+      const userId = session.session?.user?.id ?? c.user_id ?? null
+      if (!userId) throw new Error('Session expirée — reconnecte-toi puis réessaie.')
+
       const { data, error } = await supabase
         .from('contacts')
-        .insert({ ...c, est_decideur: c.est_decideur ?? true, source_fichier: 'Ajout manuel' })
+        .insert({
+          ...c,
+          user_id: userId,
+          est_decideur: c.est_decideur ?? true,
+          source_fichier: 'Ajout manuel',
+        })
         .select()
         .single()
       if (error) throw error

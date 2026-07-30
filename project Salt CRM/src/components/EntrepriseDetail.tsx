@@ -579,6 +579,7 @@ function AjoutContact({ entreprise: e }: { entreprise: EntrepriseAvecContacts })
     creer.mutate(
       {
         entreprise_id: e.id,
+        user_id: e.user_id,
         prenom: prenom.trim(),
         nom: nom.trim(),
         fonction: fonction.trim() || null,
