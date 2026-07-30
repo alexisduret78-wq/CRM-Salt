@@ -120,6 +120,62 @@ export function useUpdateContact() {
   })
 }
 
+// Ajout d'un contact à une entreprise. Les recherches automatiques ne trouvent
+// pas tout : quand un appel donne un nom, il faut pouvoir l'inscrire.
+export interface NouveauContact {
+  entreprise_id: string
+  prenom: string
+  nom: string
+  fonction?: string | null
+  email?: string | null
+  telephone?: string | null
+  civilite?: string | null
+  est_decideur?: boolean
+}
+
+export function useCreateContact() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (c: NouveauContact) => {
+      const { data, error } = await supabase
+        .from('contacts')
+        .insert({ ...c, est_decideur: c.est_decideur ?? true, source_fichier: 'Ajout manuel' })
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['entreprises'] })
+    },
+  })
+}
+
+// Suppression d'un contact. Irréversible, donc l'appelant confirme d'abord.
+export function useDeleteContact() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('contacts').delete().eq('id', id)
+      if (error) throw error
+    },
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: ['entreprises'] })
+      const prev = qc.getQueryData<EntrepriseAvecContacts[]>(['entreprises'])
+      qc.setQueryData<EntrepriseAvecContacts[]>(['entreprises'], (old) =>
+        (old ?? []).map((e) => ({ ...e, contacts: e.contacts.filter((c) => c.id !== id) }))
+      )
+      return { prev }
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) qc.setQueryData(['entreprises'], ctx.prev)
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['entreprises'] })
+    },
+  })
+}
+
 // Suppression (une ou plusieurs entreprises) — supprime d'abord les décideurs
 // liés, puis les entreprises. MAJ optimiste : disparaissent tout de suite.
 export function useDeleteEntreprises() {

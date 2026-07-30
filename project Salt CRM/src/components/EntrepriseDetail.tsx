@@ -20,6 +20,7 @@ import {
   Send,
   ChevronDown,
   Pencil,
+  UserPlus,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { EntrepriseAvecContacts } from '@/lib/database.types'
@@ -37,7 +38,13 @@ import {
 import { infererEmail } from '@/lib/email'
 import { classerDecideurs, type RangDecideur } from '@/lib/decideurs'
 import { objetEmail, corpsEmail, lienMailto, ecrireA } from '@/lib/mailto'
-import { useUpdateEntreprise, useDeleteEntreprises, useUpdateContact } from '@/hooks/useEntreprises'
+import {
+  useUpdateEntreprise,
+  useDeleteEntreprises,
+  useUpdateContact,
+  useCreateContact,
+  useDeleteContact,
+} from '@/hooks/useEntreprises'
 import { CouleurBadge, TierBadge, UidBadge, SiegeBadge, FlotteBadge } from '@/components/badges'
 import { flotteInfo } from '@/lib/flotte'
 
@@ -420,6 +427,7 @@ export function EntrepriseDetail({
               <ContactCard key={r.contact.id} rang={r} entreprise={e} position={i + 1} />
             ))}
           </div>
+          <AjoutContact entreprise={e} />
         </section>
 
         {/* Brouillon de l'email, modifiable et copiable */}
@@ -457,6 +465,7 @@ function ContactCard({
   position?: number
 }) {
   const c = rang.contact
+  const supprimerContact = useDeleteContact()
   const nomComplet = [c.prenom, c.nom].filter(Boolean).join(' ') || 'Contact'
   const emailInfere = c.email ? null : infererEmail(c.prenom, c.nom, e, e.contacts)
   const mailto = lienMailto(e, c)
@@ -499,6 +508,20 @@ function ContactCard({
               <Link2 className="h-4 w-4" />
             </a>
           )}
+          <button
+            onClick={() => {
+              if (!window.confirm(`Supprimer ${nomComplet} ?`)) return
+              supprimerContact.mutate(c.id, {
+                onSuccess: () => toast.success(`${nomComplet} supprimé`),
+                onError: (err) => toast.error((err as Error).message),
+              })
+            }}
+            disabled={supprimerContact.isPending}
+            title="Supprimer ce contact"
+            className="text-[var(--muted-foreground)] transition hover:text-red-400 disabled:opacity-50"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
         </div>
       </div>
 
@@ -520,6 +543,118 @@ function ContactCard({
           Ajoute l'adresse email pour activer l'envoi
         </div>
       )}
+    </div>
+  )
+}
+
+/**
+ * Formulaire d'ajout d'un contact, replié par défaut.
+ *
+ * Les recherches automatiques ne trouvent pas tout — plusieurs entreprises
+ * n'ont livré aucun deuxième décideur. Quand un appel donne enfin un nom, il
+ * faut pouvoir l'inscrire sans passer par du SQL.
+ */
+function AjoutContact({ entreprise: e }: { entreprise: EntrepriseAvecContacts }) {
+  const creer = useCreateContact()
+  const [ouvert, setOuvert] = useState(false)
+  const [prenom, setPrenom] = useState('')
+  const [nom, setNom] = useState('')
+  const [fonction, setFonction] = useState('')
+  const [email, setEmail] = useState('')
+
+  function reset() {
+    setPrenom(''); setNom(''); setFonction(''); setEmail(''); setOuvert(false)
+  }
+
+  function enregistrer() {
+    if (!prenom.trim() || !nom.trim()) {
+      toast.error('Prénom et nom sont requis')
+      return
+    }
+    const em = email.trim()
+    if (em && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) {
+      toast.error('Adresse invalide')
+      return
+    }
+    creer.mutate(
+      {
+        entreprise_id: e.id,
+        prenom: prenom.trim(),
+        nom: nom.trim(),
+        fonction: fonction.trim() || null,
+        email: em || null,
+      },
+      {
+        onSuccess: () => {
+          toast.success(`${prenom.trim()} ${nom.trim()} ajouté`)
+          reset()
+        },
+        onError: (err) => toast.error((err as Error).message),
+      }
+    )
+  }
+
+  if (!ouvert) {
+    return (
+      <button
+        onClick={() => setOuvert(true)}
+        className="press mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-[var(--border-strong)] px-2.5 py-2 text-xs text-[var(--muted-foreground)] transition hover:border-[color:rgba(30,215,96,0.4)] hover:text-[var(--color-salt)]"
+      >
+        <UserPlus className="h-3.5 w-3.5" />
+        Ajouter un contact
+      </button>
+    )
+  }
+
+  return (
+    <div className="mt-2 space-y-2 rounded-md border border-[var(--border-strong)] bg-[var(--card-2)] p-2.5">
+      <div className="grid grid-cols-2 gap-1.5">
+        <input
+          autoFocus
+          value={prenom}
+          onChange={(ev) => setPrenom(ev.target.value)}
+          placeholder="Prénom *"
+          className="rounded border bg-[var(--background)] px-2 py-1.5 text-xs outline-none focus:border-[var(--color-salt)]"
+        />
+        <input
+          value={nom}
+          onChange={(ev) => setNom(ev.target.value)}
+          placeholder="Nom *"
+          className="rounded border bg-[var(--background)] px-2 py-1.5 text-xs outline-none focus:border-[var(--color-salt)]"
+        />
+      </div>
+      <input
+        value={fonction}
+        onChange={(ev) => setFonction(ev.target.value)}
+        placeholder="Fonction — ex. Responsable administratif"
+        className="w-full rounded border bg-[var(--background)] px-2 py-1.5 text-xs outline-none focus:border-[var(--color-salt)]"
+      />
+      <input
+        value={email}
+        onChange={(ev) => setEmail(ev.target.value)}
+        onKeyDown={(ev) => { if (ev.key === 'Enter') enregistrer() }}
+        placeholder="Email (optionnel)"
+        className="w-full rounded border bg-[var(--background)] px-2 py-1.5 text-xs outline-none focus:border-[var(--color-salt)]"
+      />
+      <p className="text-[10px] leading-snug text-[var(--muted-foreground)]">
+        La fonction détermine le classement : « responsable informatique » ou
+        « comptabilité » remontent avant « administrateur ».
+      </p>
+      <div className="flex gap-1.5">
+        <button
+          onClick={enregistrer}
+          disabled={creer.isPending}
+          className="btn-salt press flex-1 px-2.5 py-1.5 text-xs disabled:opacity-50"
+        >
+          {creer.isPending ? 'Ajout…' : 'Ajouter'}
+        </button>
+        <button
+          onClick={reset}
+          className="rounded-md border px-2.5 py-1.5 text-xs text-[var(--muted-foreground)] transition hover:bg-[var(--muted)]"
+        >
+          Annuler
+        </button>
+      </div>
     </div>
   )
 }
