@@ -3,17 +3,32 @@ import { useAuth } from '@/hooks/useAuth'
 import { supabaseConfigured } from '@/lib/supabase'
 import { SaltLogo } from '@/components/SaltLogo'
 
+const CHAMP =
+  'w-full rounded-lg border bg-[var(--background)] px-3 py-2.5 text-sm text-[var(--foreground)] outline-none transition placeholder:text-[var(--muted-foreground)] focus:border-[var(--color-salt)] focus:ring-2 focus:ring-[color:var(--salt-soft-strong)]'
+
 export default function Login() {
-  const { signIn } = useAuth()
+  const { signIn, demanderReset } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  // Mode « mot de passe oublié » : même carte, un seul champ.
+  const [oubli, setOubli] = useState(false)
+  const [envoye, setEnvoye] = useState(false)
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
     setBusy(true)
     setError(null)
+
+    if (oubli) {
+      const { error } = await demanderReset(email)
+      setBusy(false)
+      if (error) setError(error)
+      else setEnvoye(true)
+      return
+    }
+
     const { error } = await signIn(email, password)
     if (error) setError(error)
     setBusy(false)
@@ -60,27 +75,37 @@ export default function Login() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg border bg-[var(--background)] px-3 py-2.5 text-sm text-[var(--foreground)] outline-none transition placeholder:text-[var(--muted-foreground)] focus:border-[var(--color-salt)] focus:ring-2 focus:ring-[color:var(--salt-soft-strong)]"
+              className={CHAMP}
               placeholder="alexis@…"
             />
           </div>
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-[var(--muted-foreground)]">
-              Mot de passe
-            </label>
-            <input
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-lg border bg-[var(--background)] px-3 py-2.5 text-sm text-[var(--foreground)] outline-none transition placeholder:text-[var(--muted-foreground)] focus:border-[var(--color-salt)] focus:ring-2 focus:ring-[color:var(--salt-soft-strong)]"
-              placeholder="••••••••"
-            />
-          </div>
+
+          {!oubli && (
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-[var(--muted-foreground)]">
+                Mot de passe
+              </label>
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className={CHAMP}
+                placeholder="••••••••"
+              />
+            </div>
+          )}
 
           {error && (
             <p className="rounded-lg border border-red-500/25 bg-red-500/10 px-3 py-2 text-xs text-red-300">
               {error}
+            </p>
+          )}
+
+          {envoye && (
+            <p className="rounded-lg border border-[var(--color-salt)]/30 bg-[color:var(--salt-soft)] px-3 py-2 text-xs text-[var(--foreground)]">
+              Lien envoyé à {email}. Ouvre-le depuis ce navigateur pour choisir un nouveau mot de
+              passe — pense à regarder dans les indésirables.
             </p>
           )}
 
@@ -89,7 +114,25 @@ export default function Login() {
             disabled={busy}
             className="btn-salt press w-full px-3 py-2.5 text-sm disabled:opacity-50"
           >
-            {busy ? 'Connexion…' : 'Se connecter'}
+            {busy
+              ? oubli
+                ? 'Envoi…'
+                : 'Connexion…'
+              : oubli
+                ? 'Envoyer le lien'
+                : 'Se connecter'}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setOubli((v) => !v)
+              setError(null)
+              setEnvoye(false)
+            }}
+            className="w-full text-center text-xs text-[var(--muted-foreground)] underline-offset-2 transition hover:text-[var(--foreground)] hover:underline"
+          >
+            {oubli ? 'Revenir à la connexion' : 'Mot de passe oublié ?'}
           </button>
         </form>
       </div>
