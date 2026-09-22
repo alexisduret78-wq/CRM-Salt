@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import { supabase } from '@/lib/supabase'
+import { supabase, serveurJoignable } from '@/lib/supabase'
 
 interface AuthContextValue {
   session: Session | null
@@ -8,6 +8,8 @@ interface AuthContextValue {
   /** Vrai quand on arrive depuis un lien « mot de passe oublié » : il faut
    *  alors saisir un nouveau mot de passe AVANT d'entrer dans l'app. */
   recovery: boolean
+  /** État du serveur Supabase, testé au chargement. `null` = test en cours. */
+  serveur: 'ok' | 'injoignable' | null
   signIn: (email: string, password: string) => Promise<{ error: string | null }>
   /** Envoie le lien de réinitialisation à l'adresse indiquée. */
   demanderReset: (email: string) => Promise<{ error: string | null }>
@@ -60,11 +62,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [recovery, setRecovery] = useState(
     () => typeof window !== 'undefined' && window.location.hash.includes('type=recovery')
   )
+  const [serveur, setServeur] = useState<'ok' | 'injoignable' | null>(null)
 
   useEffect(() => {
+    let vivant = true
+
+    // `getSession()` ne se contente pas de lire le stockage local : si le jeton
+    // qui s'y trouve est périmé, supabase-js part le rafraîchir par le réseau.
+    // Serveur injoignable = on attendrait le timeout du navigateur devant un
+    // écran « Chargement… ». On borne donc l'attente : au pire on affiche
+    // l'écran de connexion, ce qui est de toute façon la bonne destination.
+    const secours = setTimeout(() => {
+      if (vivant) setLoading(false)
+    }, 2500)
+
     supabase.auth.getSession().then(({ data }) => {
+      if (!vivant) return
+      clearTimeout(secours)
       setSession(data.session)
       setLoading(false)
+    })
+
+    // Diagnostic affiché sur l'écran de connexion, en parallèle.
+    serveurJoignable().then((ok) => {
+      if (vivant) setServeur(ok ? 'ok' : 'injoignable')
     })
 
     const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
@@ -72,7 +93,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(s)
     })
 
-    return () => sub.subscription.unsubscribe()
+    return () => {
+      vivant = false
+      clearTimeout(secours)
+      sub.subscription.unsubscribe()
+    }
   }, [])
 
   async function signIn(email: string, password: string) {
@@ -99,7 +124,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ session, loading, recovery, signIn, demanderReset, changerMotDePasse, signOut }}
+      value={{
+        session,
+        loading,
+        recovery,
+        serveur,
+        signIn,
+        demanderReset,
+        changerMotDePasse,
+        signOut,
+      }}
     >
       {children}
     </AuthContext.Provider>

@@ -1,13 +1,13 @@
 import { useState, type FormEvent } from 'react'
 import { useAuth } from '@/hooks/useAuth'
-import { supabaseConfigured } from '@/lib/supabase'
+import { supabaseConfigured, supabaseUrl } from '@/lib/supabase'
 import { SaltLogo } from '@/components/SaltLogo'
 
 const CHAMP =
   'w-full rounded-lg border bg-[var(--background)] px-3 py-2.5 text-sm text-[var(--foreground)] outline-none transition placeholder:text-[var(--muted-foreground)] focus:border-[var(--color-salt)] focus:ring-2 focus:ring-[color:var(--salt-soft-strong)]'
 
 export default function Login() {
-  const { signIn, demanderReset } = useAuth()
+  const { signIn, demanderReset, serveur } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -54,6 +54,17 @@ export default function Login() {
             Prospection Business — Genève &amp; La Côte
           </p>
         </div>
+
+        {supabaseConfigured && serveur === 'injoignable' && (
+          <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-200">
+            <p className="font-semibold">Base de données injoignable</p>
+            <p className="mt-1 text-red-200/80">
+              Le serveur ne répond pas — inutile d'insister sur le mot de passe, il n'est pas en
+              cause. Le projet Supabase est en pause, supprimé, ou l'adresse a changé.
+            </p>
+            <p className="mt-1.5 break-all font-mono text-[10px] text-red-200/60">{supabaseUrl}</p>
+          </div>
+        )}
 
         {!supabaseConfigured && (
           <div className="mb-4 rounded-lg border border-amber-400/25 bg-amber-400/10 p-3 text-xs text-amber-300">
@@ -111,7 +122,7 @@ export default function Login() {
 
           <button
             type="submit"
-            disabled={busy}
+            disabled={busy || serveur === 'injoignable'}
             className="btn-salt press w-full px-3 py-2.5 text-sm disabled:opacity-50"
           >
             {busy
