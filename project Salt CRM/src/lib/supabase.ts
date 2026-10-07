@@ -26,13 +26,20 @@ export const supabaseUrl = safeUrl
  * Le serveur d'auth répond-il ? N'importe quelle réponse HTTP suffit, même un
  * 401 : ce qu'on teste, c'est qu'il y a quelqu'un au bout du fil. Seule une
  * erreur réseau — DNS mort, projet supprimé — fait échouer le `fetch`.
+ *
+ * La clé `apikey` est envoyée exactement comme le fait supabase-js. Sans elle,
+ * une réponse privée d'en-têtes CORS serait bloquée par le navigateur et
+ * prendrait l'apparence d'une panne réseau : faux « injoignable ».
  */
-export async function serveurJoignable(timeoutMs = 6000): Promise<boolean> {
+export async function serveurJoignable(timeoutMs = 8000): Promise<boolean> {
   if (!supabaseConfigured) return false
   const stop = new AbortController()
   const t = setTimeout(() => stop.abort(), timeoutMs)
   try {
-    await fetch(`${safeUrl}/auth/v1/health`, { signal: stop.signal })
+    await fetch(`${safeUrl}/auth/v1/health`, {
+      headers: { apikey: safeKey },
+      signal: stop.signal,
+    })
     return true
   } catch {
     return false
